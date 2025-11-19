@@ -16,16 +16,16 @@ class NavigationHandler(
         return when (menuItem.itemId) {
             R.id.menu_select_bot_token -> {
                 showInputDialog(
-                    title = "Задать Bot Token",
-                    hint = "Введите Bot Token",
+                    title = activity.getString(R.string.set_bot_token),
+                    hint = activity.getString(R.string.enter_bot_token),
                     key = "KEY_BOT_TOKEN"
                 )
                 true
             }
             R.id.menu_select_chat -> {
                 showInputDialog(
-                    title = "Задать Chat ID",
-                    hint = "Введите Chat ID",
+                    title = activity.getString(R.string.set_chat_id),
+                    hint = activity.getString(R.string.enter_chat_id),
                     key = "KEY_CHAT"
                 )
                 true
@@ -72,7 +72,7 @@ class NavigationHandler(
 
     //Диалог выбора интервала синхронизации
     private fun showIntervalDialog() {
-        val options = arrayOf("1 минута", "10 минут", "30 минут", "60 минут")
+        val options = arrayOf(activity.getString(R.string.one_minute), activity.getString(R.string.ten_minutes), activity.getString(R.string.thirty_minutes), activity.getString(R.string.sixty_minutes))
         val currentInterval = settingsManager.syncInterval
         val checkedItem = when (currentInterval) {
             60 * 1000L -> 0 // 1 минута в миллисекундах
@@ -83,7 +83,7 @@ class NavigationHandler(
         }
 
         AlertDialog.Builder(activity)
-            .setTitle("Интервал синхронизации")
+            .setTitle(activity.getString(R.string.sync_interval))
             .setSingleChoiceItems(options, checkedItem) { _, which ->
                 when (which) {
                     0 -> settingsManager.syncInterval = 60 * 1000L
@@ -93,10 +93,10 @@ class NavigationHandler(
                 }
                 uiUpdater.updateSettingsDisplay()
             }
-            .setPositiveButton("OK") { dialog, _ ->
+            .setPositiveButton(activity.getString(R.string.ok)) { dialog, _ ->
                 dialog.dismiss()
             }
-            .setNegativeButton("Отмена") { dialog, _ ->
+            .setNegativeButton(activity.getString(R.string.cancel)) { dialog, _ ->
                 dialog.cancel()
             }
             .show()
@@ -111,7 +111,7 @@ class NavigationHandler(
         }
 
         builder.setView(inputField)
-        builder.setPositiveButton("OK") { dialog, _ ->
+        builder.setPositiveButton(activity.getString(R.string.ok)) { dialog, _ ->
             val inputText = inputField.text.toString().trim()
             if (inputText.isNotEmpty()) {
                 settingsManager.saveSetting(key, inputText)
@@ -119,13 +119,13 @@ class NavigationHandler(
                     settingsManager.isTopicEnabled = true
                 }
                 uiUpdater.updateSettingsDisplay()
-                activity.showToast("Настройка сохранена.")
+                activity.showToast(activity.getString(R.string.setting_saved))
             } else {
-                activity.showToast("Поле не может быть пустым.")
+                activity.showToast(activity.getString(R.string.field_cannot_be_empty))
             }
             dialog.dismiss()
         }
-        builder.setNegativeButton("Отмена") { dialog, _ ->
+        builder.setNegativeButton(activity.getString(R.string.cancel)) { dialog, _ ->
             dialog.cancel()
         }
         builder.show()
@@ -134,22 +134,22 @@ class NavigationHandler(
     //Сброс настроек приложения
     private fun resetSettings() {
         AlertDialog.Builder(activity)
-            .setTitle("Сброс настроек")
-            .setMessage("Вы уверены, что хотите сбросить все настройки приложения?")
-            .setPositiveButton("Да") { dialog, _ ->
+            .setTitle(activity.getString(R.string.reset_settings))
+            .setMessage(activity.getString(R.string.reset_settings_confirmation))
+            .setPositiveButton(activity.getString(R.string.yes)) { dialog, _ ->
                 settingsManager.clearSettings()
                 uiUpdater.updateSettingsDisplay()
-                activity.showToast("Настройки сброшены")
+                activity.showToast(activity.getString(R.string.settings_reset))
                 uiUpdater.updateServiceButtons(false)
                 dialog.dismiss()
             }
-            .setNegativeButton("Нет") { dialog, _ ->
+            .setNegativeButton(activity.getString(R.string.no)) { dialog, _ ->
                 dialog.dismiss()
             }
             .show()
     }
     private fun showSyncOptionsDialog() {
-        val options = arrayOf("Только по WiFi", "WiFi и Мобильные данные")
+        val options = arrayOf(activity.getString(R.string.wifi_only), activity.getString(R.string.wifi_and_mobile_data))
         val currentOption = settingsManager.syncOption
         val checkedItem = when (currentOption) {
             "wifi_only" -> 0
@@ -157,7 +157,7 @@ class NavigationHandler(
         }
 
         AlertDialog.Builder(activity)
-            .setTitle("Синхронизация:")
+            .setTitle(activity.getString(R.string.synchronization))
             .setSingleChoiceItems(options, checkedItem) { dialog, which ->
                 when (which) {
                     0 -> settingsManager.syncOption = "wifi_only"
@@ -166,7 +166,7 @@ class NavigationHandler(
                 uiUpdater.updateSettingsDisplay()
                 dialog.dismiss()
             }
-            .setNegativeButton("Отмена") { dialog, _ ->
+            .setNegativeButton(activity.getString(R.string.cancel)) { dialog, _ ->
                 dialog.cancel()
             }
             .show()

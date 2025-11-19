@@ -4,6 +4,6 @@
     <item
         android:id="@+id/menu_settings"
         android:icon="@android:drawable/ic_menu_manage"
-        android:title="Настройки"
+        android:title="@string/settings"
         app:showAsAction="always" />
 </menu>

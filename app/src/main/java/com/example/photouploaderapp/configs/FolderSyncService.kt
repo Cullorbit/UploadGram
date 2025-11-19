@@ -1,5 +1,6 @@
 package com.example.photouploaderapp.configs
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,7 @@ import kotlinx.coroutines.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.photouploaderapp.R
 
 class FolderSyncService : Service() {
 
@@ -121,6 +123,7 @@ class FolderSyncService : Service() {
         }
     }
 
+    @SuppressLint("StringFormatInvalid")
     private suspend fun uploadFileToTelegram(file: File, topic: String, folder: Folder, fileIndex: Int, totalFiles: Int) {
         val intent = Intent(applicationContext, UploadService::class.java)
         intent.putExtra("KEY_BOT_TOKEN", folder.botToken)
@@ -139,17 +142,17 @@ class FolderSyncService : Service() {
         Log.d(TAG, "Uploading file: ${file.name} to topic: $topicId at $timestamp, Folder: ${folder.name}, Syncing: ${folder.isSyncing}")
 
         if (!folder.isSyncing) {
-            notificationHelper.showNotification("Синхронизация отменена", "Синхронизация папки ${folder.name} отменена.")
-            logHelper.log("Синхронизация папки ${folder.name} отменена.")
+            notificationHelper.showNotification(getString(R.string.sync_cancelled), getString(R.string.sync_cancelled_for_folder, folder.name))
+            logHelper.log(getString(R.string.sync_cancelled_for_folder, folder.name))
             return
         }
 
         val progress = ((fileIndex + 1).toFloat() / totalFiles.toFloat() * 100).toInt()
-        logHelper.log("Загрузка файла: ${file.name} (прогресс: $progress%)")
+        logHelper.log(getString(R.string.uploading_file_progress, file.name, progress))
 
         if (progress == 100) {
-            notificationHelper.showNotification("Синхронизация завершена", "Синхронизация папки ${folder.name} завершена.")
-            logHelper.log("Синхронизация папки ${folder.name} завершена.")
+            notificationHelper.showNotification(getString(R.string.sync_completed), getString(R.string.sync_completed_for_folder, folder.name))
+            logHelper.log(getString(R.string.sync_completed_for_folder, folder.name))
         }
         applicationContext.startService(intent)
     }

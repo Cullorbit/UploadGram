@@ -18,14 +18,14 @@ class UIUpdater(private val activity: MainActivity, private val settingsManager:
         updateMenuItem(
             menuItem = menu.findItem(R.id.menu_bot_token),
             isSet = !settingsManager.botToken.isNullOrEmpty(),
-            title = "Bot Token: ${if (settingsManager.botToken != null) "Установлен" else "Не установлен"}"
+            title = if (settingsManager.botToken != null) activity.getString(R.string.bot_token_set) else activity.getString(R.string.bot_token_not_set)
         )
 
         // Обновление Chat ID
         updateMenuItem(
             menuItem = menu.findItem(R.id.menu_chat_id),
             isSet = !settingsManager.chatId.isNullOrEmpty(),
-            title = "Chat ID: ${settingsManager.chatId ?: "Не установлен"}"
+            title = if (!settingsManager.chatId.isNullOrEmpty()) activity.getString(R.string.chat_id_set, settingsManager.chatId) else activity.getString(R.string.chat_id_not_set)
         )
 
      /*   // Обновление типа медиа
@@ -57,19 +57,19 @@ class UIUpdater(private val activity: MainActivity, private val settingsManager:
         updateMenuItem(
             menuItem = menu.findItem(R.id.menu_toggle_theme),
             isSet = settingsManager.isDarkTheme,
-            title = "Темная тема: ${if (settingsManager.isDarkTheme) "Включена" else "Выключена"}"
+            title = if (settingsManager.isDarkTheme) activity.getString(R.string.dark_theme_on) else activity.getString(R.string.dark_theme_off)
         )
 
         /*updateMenuItem(
             menuItem = menu.findItem(R.id.menu_sync_options),
             isSet = true,
-            title = "Синхронизация: ${getSyncOptionTitle()}"
+            title = activity.getString(R.string.sync_option_title, getSyncOptionTitle())
         )*/
 
             /*updateMenuItem(
             menuItem = menu.findItem(R.id.menu_sync_interval),
             isSet = true,
-            title = "Интервал: ${settingsManager.syncInterval} минут"
+             title = activity.getString(R.string.sync_interval_minutes, (settingsManager.syncInterval / 60000).toString())
         )*/
     }
 
@@ -93,8 +93,8 @@ class UIUpdater(private val activity: MainActivity, private val settingsManager:
     private fun getSyncOptionTitle(): String {
         val option = settingsManager.syncOption
         return when (option) {
-            "wifi_only" -> "Только по WiFi"
-            else -> "WiFi и Мобильные данные"
+            "wifi_only" -> activity.getString(R.string.wifi_only)
+            else -> activity.getString(R.string.wifi_and_mobile_data)
         }
     }
 }

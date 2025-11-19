@@ -69,8 +69,8 @@ class EditFolderDialog(
 
         return AlertDialog.Builder(context)
             .setView(view)
-            .setTitle("Редактировать папку")
-            .setPositiveButton("Сохранить") { _, _ ->
+            .setTitle(getString(R.string.edit_folder))
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
                 val editedFolder = Folder(
                     folderName.text.toString(),
                     topicNumber.text.toString(),
@@ -85,7 +85,7 @@ class EditFolderDialog(
 
                 listener.onFolderEdited(editedFolder)
             }
-            .setNegativeButton("Отмена", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .create()
     }
 
@@ -104,8 +104,8 @@ class EditFolderDialog(
         val fileName = file.name?.lowercase() ?: return false
 
         return when (mediaType) {
-            "Фото" -> isImage(fileName)   // Если тип медиа "Фото", проверяем расширение на изображение
-            "Видео" -> isVideo(fileName)  // Если тип медиа "Видео", проверяем расширение на видео
+            getString(R.string.only_photo), "Photo" -> isImage(fileName)   // Если тип медиа "Фото", проверяем расширение на изображение
+            getString(R.string.only_video), "Video" -> isVideo(fileName)  // Если тип медиа "Видео", проверяем расширение на видео
             else -> false
         }
     }

@@ -15,6 +15,7 @@ import androidx.core.net.toUri
 import androidx.core.content.edit
 import java.util.LinkedList
 import java.util.Queue
+import com.example.photouploaderapp.R
 
 class UploadService : Service() {
     private val TAG = "UploadService"
@@ -54,7 +55,7 @@ class UploadService : Service() {
         }
 
         if (botToken.isEmpty() || chatId.isEmpty()) {
-            sendLog("Настройки отсутствуют. Останавливаем сервис.")
+            sendLog(getString(R.string.settings_missing_stopping_service))
             stopSelf()
             return START_NOT_STICKY
         }
@@ -74,21 +75,21 @@ class UploadService : Service() {
                 it.uri.toString() == syncFolderUri.toString() && it.isWritePermission
             }
             if (!hasPermission) {
-                sendLog("Нет доступа к папке. Требуется повторный выбор.")
+                sendLog(getString(R.string.no_folder_access_reselect))
                 try {
                     contentResolver.takePersistableUriPermission(
                         syncFolderUri!!,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                     )
-                    sendLog("Попытка восстановления разрешения выполнена.")
+                    sendLog(getString(R.string.permission_restore_attempted))
                 } catch (e: Exception) {
-                    Log.e(TAG, "Ошибка при восстановлении разрешения: $e")
+                    Log.e(TAG, getString(R.string.error_restoring_permission), e)
                 }
             }
         }
 
         telegramBot = TelegramBot(botToken, chatId, this, topicId)
-        sendLog("Сервис запущен с Bot Token: $botToken, Chat ID: $chatId и Topic ID: $topicId")
+        sendLog(getString(R.string.service_started_with_config, botToken, chatId, topicId.toString()))
 
         startPeriodicCheck()
         uploadMediaFiles()
@@ -125,10 +126,10 @@ class UploadService : Service() {
 
                 if (success) {
                     markFileAsSent(fileName)
-                    sendLog("Файл успешно отправлен: $fileName")
+                    sendLog(getString(R.string.file_sent_successfully, fileName))
                 } else {
                     uploadQueue.offer(file)
-                    sendLog("Ошибка отправки. Файл возвращен в очередь: $fileName")
+                    sendLog(getString(R.string.error_sending_file_queued, fileName))
                 }
             }
 
@@ -167,7 +168,7 @@ class UploadService : Service() {
     }
 
     private fun uploadMediaFiles() {
-        sendLog("Начинается загрузка файлов…")
+        sendLog(getString(R.string.starting_file_upload))
 
         syncFolderUri?.let { uri ->
             val documentFolder = DocumentFile.fromTreeUri(this, uri)
@@ -177,7 +178,7 @@ class UploadService : Service() {
                     synchronized(queueLock) {
                         uploadQueue.offer(docFile)
                     }
-                    sendLog("Файл добавлен в очередь: ${docFile.name}")
+                    sendLog(getString(R.string.file_added_to_queue, docFile.name))
                 }
             }
         }
@@ -194,9 +195,9 @@ class UploadService : Service() {
                 fileName.endsWith(".mkv") || fileName.endsWith(".mov")
 
         return when(currentMediaType.lowercase()) {
-            "фото", "photo" -> isPhoto
-            "видео", "video" -> isVideo
-            "все", "all" -> isPhoto || isVideo
+            getString(R.string.only_photo).lowercase(), "photo" -> isPhoto
+            getString(R.string.only_video).lowercase(), "video" -> isVideo
+            getString(R.string.all_media).lowercase(), "all" -> isPhoto || isVideo
             else -> false
         }
     }

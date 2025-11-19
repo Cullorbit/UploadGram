@@ -11,6 +11,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import com.example.photouploaderapp.R
 
 class TelegramBot(
     private val botToken: String,
@@ -65,7 +66,7 @@ class TelegramBot(
     ) {
         try {
             val responseBody = response.body ?: run {
-                Log.e(TAG, "Пустое тело ответа для файла $fileName")
+                Log.e(TAG, context.getString(R.string.empty_response_body, fileName))
                 callback(false)
                 return
             }
@@ -73,7 +74,7 @@ class TelegramBot(
             val responseString = try {
                 responseBody.string()
             } catch (e: IOException) {
-                Log.e(TAG, "Ошибка чтения ответа для $fileName", e)
+                Log.e(TAG, context.getString(R.string.error_reading_response, fileName), e)
                 callback(false)
                 return
             }
@@ -82,19 +83,19 @@ class TelegramBot(
                 try {
                     val telegramResponse = gson.fromJson(responseString, TelegramResponse::class.java)
                     if (telegramResponse.ok) {
-                        Log.d(TAG, "Файл успешно отправлен: $fileName")
+                        Log.d(TAG, context.getString(R.string.file_sent_successfully, fileName))
                         callback(true)
                     } else {
-                        Log.e(TAG, "Ошибка отправки $fileName: ${telegramResponse.description}")
+                        Log.e(TAG, context.getString(R.string.error_sending_file, fileName, telegramResponse.description.orEmpty()))
                         callback(false)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Ошибка парсинга ответа для $fileName", e)
+                    Log.e(TAG, context.getString(R.string.error_parsing_response, fileName), e)
                     callback(false)
                 }
             } else {
-                Log.e(TAG, "HTTP ошибка для $fileName. Код: ${response.code}")
-                Log.d(TAG, "Ответ сервера: ${responseString.take(500)}")
+                Log.e(TAG, context.getString(R.string.http_error, fileName, response.code))
+                Log.d(TAG, context.getString(R.string.server_response, responseString.take(500)))
                 callback(false)
             }
         } finally {
@@ -130,7 +131,7 @@ class TelegramBot(
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                Log.e(TAG, "Ошибка отправки файла ${file.name}: ${e.message}")
+                Log.e(TAG, context.getString(R.string.error_sending_file_with_message, file.name, e.message.orEmpty()))
                 callback(false)
             }
 
@@ -164,7 +165,7 @@ class TelegramBot(
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                Log.e(TAG, "Ошибка отправки документа ${docFile.name}: ${e.message}")
+                Log.e(TAG, context.getString(R.string.error_sending_document, docFile.name.orEmpty(), e.message.orEmpty()))
                 callback(false)
             }
 

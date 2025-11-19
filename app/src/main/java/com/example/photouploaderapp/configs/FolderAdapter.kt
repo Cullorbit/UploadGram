@@ -49,7 +49,7 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
     fun updateProgress(position: Int, progress: Int) {
         val holder = recyclerView.findViewHolderForAdapterPosition(position) as? FolderViewHolder
         holder?.progressBar?.progress = progress
-        holder?.folderDetails?.text = "Загрузка... ${progress}%"
+        holder?.folderDetails?.text = holder?.itemView?.context?.getString(R.string.loading_progress, progress)
     }
 
     fun showProgress(position: Int) {
@@ -70,8 +70,8 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
     override fun onBindViewHolder(holder: FolderViewHolder, position: Int) {
         val currentFolder = folders[position]
         holder.folderName.text = currentFolder.name
-        val folderStatus = if (currentFolder.path.isNotEmpty()) "Выбрана" else "Не выбрана"
-        holder.folderDetails.text = "Тема: ${currentFolder.topic}, Тип: ${currentFolder.mediaType}, Папка: $folderStatus"
+        val folderStatus = if (currentFolder.path.isNotEmpty()) holder.itemView.context.getString(R.string.selected) else holder.itemView.context.getString(R.string.not_selected)
+        holder.folderDetails.text = holder.itemView.context.getString(R.string.folder_details, currentFolder.topic, currentFolder.mediaType, folderStatus)
         holder.ivFolderIcon.setImageResource(R.drawable.ic_folder)
 
         holder.itemView.setOnClickListener {

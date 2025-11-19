@@ -12,7 +12,7 @@ public class MediaSyncJob extends JobService {
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        Log.d(TAG, "Запуск MediaSyncJob");
+        Log.d(TAG, "Starting MediaSyncJob");
         Intent serviceIntent = new Intent(this, (Class<?>) UploadService.class);
         startService(serviceIntent);
         return false;
@@ -21,7 +21,7 @@ public class MediaSyncJob extends JobService {
     @SuppressLint("SpecifyJobSchedulerIdRange")
     @Override
     public boolean onStopJob(JobParameters params) {
-        Log.d(TAG, "Остановка MediaSyncJob");
+        Log.d(TAG, "Stopping MediaSyncJob");
         return true;
     }
 }

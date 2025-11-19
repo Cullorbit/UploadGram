@@ -4,16 +4,16 @@
         <item
             android:id="@+id/menu_settings_header"
             android:enabled="false"
-            android:title="Настройки" />
+            android:title="@string/settings" />
 
         <item
             android:id="@+id/menu_bot_token"
             android:enabled="false"
-            android:title="Bot Token: Не установлен"
+            android:title="@string/bot_token_not_set"
             app:iconTintMode="src_in"/>
         <item
             android:id="@+id/menu_chat_id"
-            android:title="Chat ID: Не установлен"
+            android:title="@string/chat_id_not_set"
             android:enabled="false"
             app:iconTintMode="src_in"/>
        <!-- <item
@@ -39,11 +39,11 @@
         <item
             android:id="@+id/menu_select_bot_token"
             android:icon="@drawable/ic_bot_token"
-            android:title="Задать Bot Token" />
+            android:title="@string/set_bot_token" />
         <item
             android:id="@+id/menu_select_chat"
             android:icon="@drawable/ic_chat_id"
-            android:title="Задать Chat ID" />
+            android:title="@string/set_chat_id" />
        <!-- <item
             android:id="@+id/menu_select_topic"
             android:icon="@drawable/ic_topic"
@@ -58,13 +58,13 @@
             android:title="Задать папку синхронизации" />-->
         <item
             android:id="@+id/menu_sync_interval"
-            android:title="Интервал синхронизации"
+            android:title="@string/sync_interval"
             android:icon="@drawable/ic_timer"/>
     </group>
     <group android:checkableBehavior="none">
         <item
             android:id="@+id/menu_sync_options"
-            android:title="Настройки синхронизации"
+            android:title="@string/sync_settings"
             android:icon="@drawable/ic_sync"/>
         <item
             android:id="@+id/menu_sync_interval_set"
@@ -72,11 +72,11 @@
             android:icon="@drawable/ic_timer" />
         <item
             android:id="@+id/menu_toggle_theme"
-            android:title="Переключить тему приложения"
+            android:title="@string/toggle_theme"
             android:icon="@drawable/ic_theme_toggle" />
         <item
             android:id="@+id/menu_reset_settings"
-            android:title="Сбросить настройки приложения"
+            android:title="@string/reset_app_settings"
             android:icon="@drawable/ic_reset" />
     </group>
 </menu>

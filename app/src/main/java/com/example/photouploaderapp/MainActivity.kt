@@ -192,7 +192,7 @@ class MainActivity : AppCompatActivity() {
                 if (folder != editedFolder) {
                     serviceController.stopService()
                     uiUpdater.updateServiceButtons(serviceController.isServiceActive())
-                    showToast("Изменения в папке обнаружены. Сервис остановлен.")
+                    showToast(getString(R.string.folder_changes_detected))
                 }
                 editedFolder.botToken = settingsManager.botToken ?: ""
                 editedFolder.chatId = settingsManager.chatId ?: ""
@@ -251,14 +251,14 @@ class MainActivity : AppCompatActivity() {
         uiUpdater.updateSettingsDisplay()
         updateServiceButtons()
         if (settingsManager.botToken.isNullOrEmpty() || settingsManager.chatId.isNullOrEmpty()) {
-            showToast("Сначала настройте Bot Token и Chat ID в глобальных настройках!")
+            showToast(getString(R.string.configure_bot_token_chat_id))
         }
     }
 
     private fun setupButtonListeners() {
         btnStartService.setOnClickListener {
             if (serviceController.isServiceActive()) {
-                showToast("Сервис уже запущен")
+                showToast(getString(R.string.service_already_running))
             } else {
                 val networkUtils = NetworkUtils(this)
                 val syncOption = settingsManager.syncOption
@@ -266,13 +266,13 @@ class MainActivity : AppCompatActivity() {
                 when (syncOption) {
                     "wifi_only" -> {
                         if (!networkUtils.isWifiConnected()) {
-                            showToast("Синхронизация доступна только по Wi-Fi.")
+                            showToast(getString(R.string.sync_available_wifi_only))
                             return@setOnClickListener
                         }
                     }
                     else -> {
                         if (!networkUtils.isConnected()) {
-                            showToast("Отсутствует интернет-соединение.")
+                            showToast(getString(R.string.no_internet_connection))
                             return@setOnClickListener
                         }
                     }
@@ -286,7 +286,7 @@ class MainActivity : AppCompatActivity() {
                                     serviceController.startService(listOf(folder))
                                     uiUpdater.updateServiceButtons(serviceController.isServiceActive())
                                 } else {
-                                    showToast("Тема №${folder.topic} не существует. Проверьте номер темы.")
+                                    showToast(getString(R.string.topic_not_exist, folder.topic))
                                 }
                             }
                         } else {
@@ -304,7 +304,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnClearLog.setOnClickListener {
-            tvLog.text = "Лог:"
+            tvLog.text = getString(R.string.log_cleared)
             logHelper.clearLog()
         }
     }
@@ -314,32 +314,34 @@ class MainActivity : AppCompatActivity() {
         val request = Request.Builder().url(url).build()
 
         client.newCall(request).enqueue(object : Callback {
+            @SuppressLint("StringFormatMatches")
             override fun onFailure(call: Call, e: IOException) {
-                Log.e(TAG, "Ошибка при проверке темы: ${e.message}")
+                Log.e(TAG, getString(R.string.check_theme_error_message, e.message))
                 callback(false)
             }
 
+            @SuppressLint("StringFormatInvalid")
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val responseString = response.body?.string() ?: "No response body"
-                    Log.d(TAG, "Проверка темы: $responseString")
+                    Log.d(TAG, getString(R.string.theme_check_response, responseString))
                     try {
                         val telegramResponse = gson.fromJson(responseString, TelegramResponse::class.java)
                         if (telegramResponse.ok) {
-                            Log.d(TAG, "Тема существует")
+                            Log.d(TAG, getString(R.string.theme_exists))
                             callback(true)
                         } else {
-                            Log.e(TAG, "Тема не существует: ${telegramResponse.description}")
+                            Log.e(TAG, getString(R.string.theme_does_not_exist, telegramResponse.description))
                             callback(false)
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Ошибка при парсинге ответа Telegram: ${e.message}")
+                        Log.e(TAG, getString(R.string.telegram_response_parse_error, e.message))
                         callback(false)
                     }
                 } else {
-                    Log.e(TAG, "Ошибка при проверке темы. Код ответа: ${response.code}, Сообщение: ${response.message}")
+                    Log.e(TAG, getString(R.string.check_theme_error_code, response.code, response.message))
                     val responseBody = response.body?.string() ?: "No response body"
-                    Log.e(TAG, "Ответ сервера: $responseBody")
+                    Log.e(TAG, getString(R.string.server_response, responseBody))
                     callback(false)
                 }
                 response.close()
@@ -399,7 +401,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showMediaTypeDialog() {
-        val options = arrayOf("Фото и видео", "Только фото", "Только видео")
+        val options = arrayOf(getString(R.string.photo_and_video), getString(R.string.only_photo), getString(R.string.only_video))
         val current = settingsManager.mediaType
         val checkedItem = when (current) {
             "photo" -> 1
@@ -409,22 +411,22 @@ class MainActivity : AppCompatActivity() {
         var selectedIndex = checkedItem
 
         AlertDialog.Builder(this)
-            .setTitle("Задать тип медиа")
+            .setTitle(getString(R.string.set_media_type))
             .setSingleChoiceItems(options, checkedItem) { _, which ->
                 selectedIndex = which
             }
-            .setPositiveButton("OK") { dialog, _ ->
+            .setPositiveButton(getString(R.string.ok)) { dialog, _ ->
                 val newValue = when (selectedIndex) {
                     1 -> "photo"
                     2 -> "video"
                     else -> "all"
                 }
                 settingsManager.mediaType = newValue
-                showToast("Тип медиа сохранён: ${options[selectedIndex]}")
+                showToast(getString(R.string.media_type_saved, options[selectedIndex]))
                 uiUpdater.updateSettingsDisplay()
                 dialog.dismiss()
             }
-            .setNegativeButton("Отмена") { dialog, _ ->
+            .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
                 dialog.cancel()
             }
             .show()
@@ -454,7 +456,7 @@ class MainActivity : AppCompatActivity() {
                     folder.chatId = settingsManager.chatId ?: ""
                 }
             }
-            Log.d("MainActivity", "Загружено папок: ${folders.size}")
+            Log.d("MainActivity", "Loaded folders: ${folders.size}")
         }
     }
 

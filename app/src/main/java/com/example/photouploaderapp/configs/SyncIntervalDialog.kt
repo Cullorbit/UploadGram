@@ -4,20 +4,21 @@ import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
+import com.example.photouploaderapp.R
 
 class SyncIntervalDialog(private val settingsManager: SettingsManager) : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val intervals = arrayOf("1 минута", "5 минут", "15 минут", "30 минут", "1 час", "2 часа")
+        val intervals = arrayOf(getString(R.string.one_minute), getString(R.string.five_minutes), getString(R.string.fifteen_minutes), getString(R.string.thirty_minutes), getString(R.string.one_hour), getString(R.string.two_hours))
         val currentInterval = getIntervalIndex(settingsManager.syncInterval)
 
         return AlertDialog.Builder(context)
-            .setTitle("Интервал синхронизации")
+            .setTitle(getString(R.string.sync_interval))
             .setSingleChoiceItems(intervals, currentInterval) { _, which ->
                 val interval = getIntervalInMillis(which)
                 settingsManager.syncInterval = interval
             }
-            .setPositiveButton("OK", null)
+            .setPositiveButton(getString(R.string.ok), null)
             .create()
     }
 

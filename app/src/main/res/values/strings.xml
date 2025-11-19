@@ -17,4 +17,431 @@
         <item>Успешные</item>
         <item>Ошибки</item>
     </string-array>
+    <string name="folder">Папка</string>
+    <string name="folder_changes_detected">Изменения в папке обнаружены. Сервис остановлен.</string>
+    <string name="configure_bot_token_chat_id">Сначала настройте Bot Token и Chat ID в глобальных настройках!</string>
+    <string name="service_already_running">Сервис уже запущен</string>
+    <string name="sync_available_wifi_only">Синхронизация доступна только по Wi-Fi.</string>
+    <string name="no_internet_connection">Отсутствует интернет-соединение.</string>
+    <string name="topic_not_exist">Тема №%1$s не существует. Проверьте номер темы.</string>
+    <string name="photo_and_video">Фото и видео</string>
+    <string name="only_photo">Только фото</string>
+    <string name="only_video">Только видео</string>
+    <string name="set_media_type">Задать тип медиа</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Отмена</string>
+    <string name="media_type_saved">Тип медиа сохранён: %1$s</string>
+    <string name="add_folder">Добавить папку</string>
+    <string name="edit_folder">Редактировать папку</string>
+    <string name="save">Сохранить</string>
+    <string name="loading_progress">Загрузка... %1$d%%</string>
+    <string name="selected">Выбрана</string>
+    <string name="not_selected">Не выбрана</string>
+    <string name="folder_details">Тема: %1$s, Тип: %2$s, Папка: %3$s</string>
+    <string name="set_bot_token">Задать Bot Token</string>
+    <string name="enter_bot_token">Введите Bot Token</string>
+    <string name="set_chat_id">Задать Chat ID</string>
+    <string name="enter_chat_id">Введите Chat ID</string>
+    <string name="one_minute">1 минута</string>
+    <string name="ten_minutes">10 минут</string>
+    <string name="thirty_minutes">30 минут</string>
+    <string name="sixty_minutes">60 минут</string>
+    <string name="sync_interval">Интервал синхронизации</string>
+    <string name="setting_saved">Настройка сохранена.</string>
+    <string name="field_cannot_be_empty">Поле не может быть пустым.</string>
+    <string name="reset_settings">Сброс настроек</string>
+    <string name="reset_settings_confirmation">Вы уверены, что хотите сбросить все настройки приложения?</string>
+    <string name="yes">Да</string>
+    <string name="no">Нет</string>
+    <string name="settings_reset">Настройки сброшены</string>
+    <string name="wifi_only">Только по WiFi</string>
+    <string name="wifi_and_mobile_data">WiFi и Мобильные данные</string>
+    <string name="synchronization">Синхронизация:</string>
+    <string name="configure_bot_token_for_folder">Настройте Bot Token для папки %1$s!</string>
+    <string name="select_folder_for">Выберите папку для %1$s!</string>
+    <string name="service_stopped">Сервис остановлен</string>
+    <string name="five_minutes">5 минут</string>
+    <string name="fifteen_minutes">15 минут</string>
+    <string name="one_hour">1 час</string>
+    <string name="two_hours">2 часа</string>
+    <string name="empty_response_body">Пустое тело ответа для файла %1$s</string>
+    <string name="error_reading_response">Ошибка чтения ответа для %1$s</string>
+    <string name="file_sent_successfully">Файл успешно отправлен: %1$s</string>
+    <string name="error_sending_file">Ошибка отправки %1$s: %2$s</string>
+    <string name="error_parsing_response">Ошибка парсинга ответа для %1$s</string>
+    <string name="http_error">HTTP ошибка для %1$s. Код: %2$d</string>
+    <string name="server_response">Ответ сервера: %1$s</string>
+    <string name="error_sending_file_with_message">Ошибка отправки файла %1$s: %2$s</string>
+    <string name="error_sending_document">Ошибка отправки документа %1$s: %2$s</string>
+    <string name="settings_missing_stopping_service">Настройки отсутствуют. Останавливаем сервис.</string>
+    <string name="no_folder_access_reselect">Нет доступа к папке. Требуется повторный выбор.</string>
+    <string name="permission_restore_attempted">Попытка восстановления разрешения выполнена.</string>
+    <string name="error_restoring_permission">Ошибка при восстановлении разрешения</string>
+    <string name="service_started_with_config">Сервис запущен с Bot Token: %1$s, Chat ID: %2$s и Topic ID: %3$s</string>
+    <string name="error_sending_file_queued">Ошибка отправки. Файл возвращен в очередь: %1$s</string>
+    <string name="starting_file_upload">Начинается загрузка файлов…</string>
+    <string name="file_added_to_queue">Файл добавлен в очередь: %1$s</string>
+    <string name="select">Выбрать</string>
+    <string name="folder_name">Название папки:</string>
+    <string name="topic_number">Номер темы:</string>
+    <string name="media_type">Тип медиа:</string>
+    <string name="folder_path">Путь для папки:</string>
+    <string name="dark_theme_on">Темная тема: ВКЛ</string>
+    <string name="dark_theme_off">Темная тема: ВЫКЛ</string>
+    <string name="sync_option_title">Синхронизация: %1$s</string>
+    <string name="sync_interval_minutes">Интервал: %1$s минут</string>
+    <string name="bot_token_set">Bot Token: Установлен</string>
+    <string name="bot_token_not_set">Bot Token: Не установлен</string>
+    <string name="chat_id_set">Chat ID: %1$s</string>
+    <string name="chat_id_not_set">Chat ID: Не указан</string>
+    <string name="default_folder_name">Стандартное название папки</string>
+    <string name="log_message_with_folder">Сообщения для папки</string>
+    <string name="check_theme_error_message">[%1$s] %2$s</string>
+    <string name="theme_check_response">Тема</string>
+    <string name="theme_exists">Ошибка проверки темы</string>
+    <string name="theme_does_not_exist">Ответ проверки темы</string>
+    <string name="telegram_response_parse_error">Тема существует</string>
+    <string name="check_theme_error_code">Тема не существует</string>
+    <string name="log_cleared">Ошибка парсинга в Телеграм: %1$s</string>
+    <string name="all_media">все</string>
+    <string name="sync_cancelled">Синхронизация отменена</string>
+    <string name="sync_cancelled_for_folder">Синхронизация для папки отменена</string>
+    <string name="uploading_file_progress">Загрузка файла: </string>
+    <string name="sync_completed">Синхронизация завершена  </string>
+    <string name="sync_completed_for_folder">Синхронизация папки завершена  </string>
+    <string name="settings">Настройки</string>
+    <string name="sync_settings">Настройки синхронизации</string>
+    <string name="toggle_theme">Переключить тему приложения</string>
+    <string name="reset_app_settings">Сбросить настройки приложения</string>
+
+    <!-- <string name="navigation_drawer_open">Open navigation drawer</string> -->
+
+    <!-- <string name="navigation_drawer_close">Close navigation drawer</string> -->
+
+    <!-- <string name="start_service">Start Service</string> -->
+
+    <!-- <string name="stop_service">Stop Service</string> -->
+
+    <!-- <string name="log_title">Log</string> -->
+
+    <!-- <string name="clear_log">Clear Log</string> -->
+
+    <!-- <string name="set_sync_interval">Set Sync Interval</string> -->
+
+    <!-- <string-array name="media_types">
+        <item>All</item>
+        <item>Photo</item>
+        <item>Video</item>
+    </string-array> -->
+
+    <!-- <string-array name="log_filters">
+        <item>All</item>
+        <item>Successful</item>
+        <item>Errors</item>
+    </string-array> -->
+
+    <!-- <string name="folder">Folder</string> -->
+
+    <!-- <string name="folder_changes_detected">Folder changes detected. Service stopped.</string> -->
+
+    <!-- <string name="configure_bot_token_chat_id">First, configure Bot Token and Chat ID in global
+        settings!
+    </string> -->
+
+    <!-- <string name="service_already_running">Service is already running</string> -->
+
+    <!-- <string name="sync_available_wifi_only">Sync is only available over Wi-Fi.</string> -->
+
+    <!-- <string name="no_internet_connection">No internet connection.</string> -->
+
+    <!-- <string name="topic_not_exist">Topic #%1$s does not exist. Check the topic number.</string> -->
+
+    <!-- <string name="add_folder">Add Folder</string> -->
+
+    <!-- <string name="edit_folder">Edit Folder</string> -->
+
+    <!-- <string name="save">Save</string> -->
+
+    <!-- <string name="loading_progress">Loading... %1$d%%</string> -->
+
+    <!-- <string name="selected">Selected</string> -->
+
+    <!-- <string name="not_selected">Not selected</string> -->
+
+    <!-- <string name="folder_details">Topic: %1$s, Type: %2$s, Folder: %3$s</string> -->
+
+    <!-- <string name="set_bot_token">Set Bot Token</string> -->
+
+    <!-- <string name="enter_bot_token">Enter Bot Token</string> -->
+
+    <!-- <string name="set_chat_id">Set Chat ID</string> -->
+
+    <!-- <string name="enter_chat_id">Enter Chat ID</string> -->
+
+    <!-- <string name="one_minute">1 minute</string> -->
+
+    <!-- <string name="ten_minutes">10 minutes</string> -->
+
+    <!-- <string name="thirty_minutes">30 minutes</string> -->
+
+    <!-- <string name="sixty_minutes">60 minutes</string> -->
+
+    <!-- <string name="sync_interval">Sync Interval</string> -->
+
+    <!-- <string name="setting_saved">Setting saved.</string> -->
+
+    <!-- <string name="field_cannot_be_empty">Field cannot be empty.</string> -->
+
+    <!-- <string name="reset_settings">Reset Settings</string> -->
+
+    <!-- <string name="reset_settings_confirmation">Are you sure you want to reset all app settings?
+    </string> -->
+
+    <!-- <string name="yes">Yes</string> -->
+
+    <!-- <string name="no">No</string> -->
+
+    <!-- <string name="settings_reset">Settings have been reset</string> -->
+
+    <!-- <string name="wifi_only">WiFi only</string> -->
+
+    <!-- <string name="wifi_and_mobile_data">WiFi and Mobile data</string> -->
+
+    <!-- <string name="synchronization">Synchronization:</string> -->
+
+    <!-- <string name="configure_bot_token_for_folder">Configure Bot Token for folder %1$s!</string> -->
+
+    <!-- <string name="select_folder_for">Select a folder for %1$s!</string> -->
+
+    <!-- <string name="service_stopped">Service stopped</string> -->
+
+    <!-- <string name="five_minutes">5 minutes</string> -->
+
+    <!-- <string name="fifteen_minutes">15 minutes</string> -->
+
+    <!-- <string name="one_hour">1 hour</string> -->
+
+    <!-- <string name="two_hours">2 hours</string> -->
+
+    <!-- <string name="settings_missing_stopping_service">Settings are missing. Stopping service.
+    </string> -->
+
+    <!-- <string name="no_folder_access_reselect">No access to the folder. Re-selection required.
+    </string> -->
+
+    <!-- <string name="permission_restore_attempted">Permission restore attempt completed.</string> -->
+
+    <!-- <string name="error_restoring_permission">Error while restoring permission</string> -->
+
+    <!-- <string name="service_started_with_config">Service started with Bot Token: %1$s, Chat ID: %2$s
+        and Topic ID: %3$s
+    </string> -->
+
+    <!-- <string name="error_sending_file_queued">Upload error. File requeued: %1$s</string> -->
+
+    <!-- <string name="starting_file_upload">Starting file upload…</string> -->
+
+    <!-- <string name="file_added_to_queue">File added to queue: %1$s</string> -->
+
+    <!-- <string name="cancel">Cancel</string> -->
+
+    <!-- <string name="server_response">Server response: %1$s</string> -->
+
+    <!-- <string name="configure_bot_token_chat_id">Сначала настройте Bot Token и Chat ID в глобальных
+        настройках!
+    </string> -->
+
+    <!-- <string name="reset_settings_confirmation">Вы уверены, что хотите сбросить все настройки
+        приложения?
+    </string> -->
+
+    <!-- <string name="settings_missing_stopping_service">Настройки отсутствуют. Останавливаем сервис.
+    </string> -->
+
+    <!-- <string name="no_folder_access_reselect">Нет доступа к папке. Требуется повторный выбор.
+    </string> -->
+
+    <!-- <string name="permission_restore_attempted">Попытка восстановления разрешения выполнена.
+    </string> -->
+
+    <!-- <string name="service_started_with_config">Сервис запущен с Bot Token: %1$s, Chat ID: %2$s и
+        Topic ID: %3$s
+    </string> -->
+
+    <!-- <string name="error_sending_file_queued">Ошибка отправки. Файл возвращен в очередь: %1$s
+    </string> -->
+
+    <!-- <string name="select">Выбрать</string> -->
+
+    <!-- <string name="folder_name">Название папки:</string> -->
+
+    <!-- <string name="topic_number">Номер темы:</string> -->
+
+    <!-- <string name="media_type">Тип медиа:</string> -->
+
+    <!-- <string name="folder_path">Путь к папке:</string> -->
+
+    <!-- <string name="dark_theme_on">Темная тема: Включена</string> -->
+
+    <!-- <string name="dark_theme_off">Темная тема: Выключена</string> -->
+
+    <!-- <string name="sync_option_title">Синхронизация: %1$s</string> -->
+
+    <!-- <string name="sync_interval_minutes">Интервал: %1$s минут</string> -->
+
+    <!-- <string name="bot_token_set">Bot Token: Установлен</string> -->
+
+    <!-- <string name="bot_token_not_set">Bot Token: Не установлен</string> -->
+
+    <!-- <string name="chat_id_not_set">Chat ID: Не установлен</string> -->
+
+    <!-- <string name="default_folder_name">Папка</string> -->
+
+    <!-- <string name="check_theme_error_message">Ошибка при проверке темы: %1$s</string> -->
+
+    <!-- <string name="theme_check_response">Проверка темы: %1$s</string> -->
+
+    <!-- <string name="theme_exists">Тема существует</string> -->
+
+    <!-- <string name="theme_does_not_exist">Тема не существует: %1$s</string> -->
+
+    <!-- <string name="telegram_response_parse_error">Ошибка при парсинге ответа Telegram: %1$s</string> -->
+
+    <!-- <string name="check_theme_error_code">Ошибка при проверке темы. Код ответа: %1$d, Сообщение:
+        %2$s
+    </string> -->
+
+    <!-- <string name="log_cleared">Лог:</string> -->
+
+    <!-- <string name="configure_bot_token_chat_id">Сначала настройте Bot Token и Chat ID в глобальных
+        настройках!
+    </string> -->
+
+    <!-- <string name="reset_settings_confirmation">Вы уверены, что хотите сбросить все настройки
+        приложения?
+    </string> -->
+
+    <!-- <string name="settings_missing_stopping_service">Настройки отсутствуют. Останавливаем сервис.
+    </string> -->
+
+    <!-- <string name="no_folder_access_reselect">Нет доступа к папке. Требуется повторный выбор.
+    </string> -->
+
+    <!-- <string name="permission_restore_attempted">Попытка восстановления разрешения выполнена.
+    </string> -->
+
+    <!-- <string name="service_started_with_config">Сервис запущен с Bot Token: %1$s, Chat ID: %2$s и
+        Topic ID: %3$s
+    </string> -->
+
+    <!-- <string name="error_sending_file_queued">Ошибка отправки. Файл возвращен в очередь: %1$s
+    </string> -->
+
+    <!-- <string name="select">Выбрать</string> -->
+
+    <!-- <string name="folder_name">Название папки:</string> -->
+
+    <!-- <string name="topic_number">Номер темы:</string> -->
+
+    <!-- <string name="media_type">Тип медиа:</string> -->
+
+    <!-- <string name="folder_path">Путь к папке:</string> -->
+
+    <!-- <string name="dark_theme_on">Темная тема: Включена</string> -->
+
+    <!-- <string name="dark_theme_off">Темная тема: Выключена</string> -->
+
+    <!-- <string name="sync_option_title">Синхронизация: %1$s</string> -->
+
+    <!-- <string name="sync_interval_minutes">Интервал: %1$s минут</string> -->
+
+    <!-- <string name="bot_token_set">Bot Token: Установлен</string> -->
+
+    <!-- <string name="bot_token_not_set">Bot Token: Не установлен</string> -->
+
+    <!-- <string name="chat_id_not_set">Chat ID: Не установлен</string> -->
+
+    <!-- <string name="default_folder_name">Папка</string> -->
+
+    <!-- <string name="check_theme_error_message">Ошибка при проверке темы: %1$s</string> -->
+
+    <!-- <string name="theme_check_response">Проверка темы: %1$s</string> -->
+
+    <!-- <string name="theme_exists">Тема существует</string> -->
+
+    <!-- <string name="theme_does_not_exist">Тема не существует: %1$s</string> -->
+
+    <!-- <string name="telegram_response_parse_error">Ошибка при парсинге ответа Telegram: %1$s</string> -->
+
+    <!-- <string name="check_theme_error_code">Ошибка при проверке темы. Код ответа: %1$d, Сообщение:
+        %2$s
+    </string> -->
+
+    <!-- <string name="log_cleared">Лог:</string> -->
+
+    <!-- <string name="configure_bot_token_chat_id">Сначала настройте Bot Token и Chat ID в глобальных
+        настройках!
+    </string> -->
+
+    <!-- <string name="reset_settings_confirmation">Вы уверены, что хотите сбросить все настройки
+        приложения?
+    </string> -->
+
+    <!-- <string name="settings_missing_stopping_service">Настройки отсутствуют. Останавливаем сервис.
+    </string> -->
+
+    <!-- <string name="no_folder_access_reselect">Нет доступа к папке. Требуется повторный выбор.
+    </string> -->
+
+    <!-- <string name="permission_restore_attempted">Попытка восстановления разрешения выполнена.
+    </string> -->
+
+    <!-- <string name="service_started_with_config">Сервис запущен с Bot Token: %1$s, Chat ID: %2$s и
+        Topic ID: %3$s
+    </string> -->
+
+    <!-- <string name="error_sending_file_queued">Ошибка отправки. Файл возвращен в очередь: %1$s
+    </string> -->
+
+    <!-- <string name="select">Выбрать</string> -->
+
+    <!-- <string name="folder_name">Название папки:</string> -->
+
+    <!-- <string name="topic_number">Номер темы:</string> -->
+
+    <!-- <string name="media_type">Тип медиа:</string> -->
+
+    <!-- <string name="folder_path">Путь к папке:</string> -->
+
+    <!-- <string name="dark_theme_on">Темная тема: Включена</string> -->
+
+    <!-- <string name="dark_theme_off">Темная тема: Выключена</string> -->
+
+    <!-- <string name="sync_option_title">Синхронизация: %1$s</string> -->
+
+    <!-- <string name="sync_interval_minutes">Интервал: %1$s минут</string> -->
+
+    <!-- <string name="bot_token_set">Bot Token: Установлен</string> -->
+
+    <!-- <string name="bot_token_not_set">Bot Token: Не установлен</string> -->
+
+    <!-- <string name="chat_id_not_set">Chat ID: Не установлен</string> -->
+
+    <!-- <string name="default_folder_name">Папка</string> -->
+
+    <!-- <string name="check_theme_error_message">Ошибка при проверке темы: %1$s</string> -->
+
+    <!-- <string name="theme_check_response">Проверка темы: %1$s</string> -->
+
+    <!-- <string name="theme_exists">Тема существует</string> -->
+
+    <!-- <string name="theme_does_not_exist">Тема не существует: %1$s</string> -->
+
+    <!-- <string name="telegram_response_parse_error">Ошибка при парсинге ответа Telegram: %1$s</string> -->
+
+    <!-- <string name="check_theme_error_code">Ошибка при проверке темы. Код ответа: %1$d, Сообщение:
+        %2$s
+    </string> -->
+
+    <!-- <string name="log_cleared">Лог:</string> -->
 </resources>

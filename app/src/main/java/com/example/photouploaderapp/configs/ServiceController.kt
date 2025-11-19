@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import com.example.photouploaderapp.telegrambot.UploadService
 import com.example.photouploaderapp.telegrambot.UploadWorker
 import java.util.concurrent.TimeUnit
+import com.example.photouploaderapp.R
 
 class ServiceController(private val context: Context, private val settingsManager: SettingsManager) {
 
@@ -64,11 +65,11 @@ class ServiceController(private val context: Context, private val settingsManage
 
     private fun validateFolder(folder: Folder): Boolean {
         if (folder.botToken.isEmpty() && settingsManager.botToken.isNullOrEmpty()) {
-            showToast("Настройте Bot Token для папки ${folder.name}!")
+            showToast(context.getString(R.string.configure_bot_token_for_folder, folder.name))
             return false
         }
         if (folder.path.isEmpty()) {
-            showToast("Выберите папку для ${folder.name}!")
+            showToast(context.getString(R.string.select_folder_for, folder.name))
             return false
         }
         return true
@@ -80,7 +81,7 @@ class ServiceController(private val context: Context, private val settingsManage
 
         context.stopService(Intent(context, UploadService::class.java))
         isServiceActive = false
-        showToast("Сервис остановлен")
+        showToast(context.getString(R.string.service_stopped))
     }
 
     fun isServiceActive(): Boolean = isServiceActive

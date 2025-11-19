@@ -51,8 +51,8 @@ class AddFolderDialog(private val settingsManager: SettingsManager, private val 
 
         return AlertDialog.Builder(context)
             .setView(view)
-            .setTitle("Добавить папку")
-            .setPositiveButton("OK") { _, _ ->
+            .setTitle(getString(R.string.add_folder))
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
                 val folder = Folder(
                     folderName.text.toString(),
                     topicNumber.text.toString(),
@@ -62,7 +62,7 @@ class AddFolderDialog(private val settingsManager: SettingsManager, private val 
                 settingsManager.selectedMediaType = mediaType.selectedItem.toString() // Сохраняем выбранный тип медиа
                 listener.onFolderAdded(folder)
             }
-            .setNegativeButton("Отмена", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .create()
     }
 }
