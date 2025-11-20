@@ -19,7 +19,7 @@ class ServiceController(private val context: Context, private val settingsManage
     private var isServiceActive = false
     private val workManager = WorkManager.getInstance(context)
     fun startService(folders: List<Folder>) {
-        stopService()
+        stopServiceInternal()
 
         folders.filter { it.isSyncing }.forEach { folder ->
             if (!validateFolder(folder)) return@forEach
@@ -30,6 +30,7 @@ class ServiceController(private val context: Context, private val settingsManage
         }
         isServiceActive = true
     }
+
 
     fun schedulePeriodicUpload() {
         val constraints = Constraints.Builder()
@@ -77,11 +78,15 @@ class ServiceController(private val context: Context, private val settingsManage
 
     @SuppressLint("ImplicitSamInstance")
     fun stopService() {
-        if (!isServiceActive) return
+        stopServiceInternal()
+        if(isServiceActive()) return
+        showToast(context.getString(R.string.service_stopped))
+    }
 
+    private fun stopServiceInternal() {
+        if (!isServiceActive) return
         context.stopService(Intent(context, UploadService::class.java))
         isServiceActive = false
-        showToast(context.getString(R.string.service_stopped))
     }
 
     fun isServiceActive(): Boolean = isServiceActive

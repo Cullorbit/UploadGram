@@ -278,22 +278,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                for (folder in folders) {
-                    if (folder.isSyncing) {
-                        if (folder.isTopicEnabled && folder.topic.isNotEmpty()) {
-                            checkForumTopic(folder) { topicExists ->
-                                if (topicExists) {
-                                    serviceController.startService(listOf(folder))
-                                    uiUpdater.updateServiceButtons(serviceController.isServiceActive())
-                                } else {
-                                    showToast(getString(R.string.topic_not_exist, folder.topic))
-                                }
-                            }
-                        } else {
-                            serviceController.startService(listOf(folder))
-                            uiUpdater.updateServiceButtons(serviceController.isServiceActive())
-                        }
-                    }
+                val foldersToSync = folders.filter { it.isSyncing }
+                if (foldersToSync.isNotEmpty()) {
+                    serviceController.startService(foldersToSync)
+                    uiUpdater.updateServiceButtons(serviceController.isServiceActive())
                 }
             }
         }

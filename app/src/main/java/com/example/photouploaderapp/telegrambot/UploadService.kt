@@ -18,6 +18,13 @@ import java.util.Queue
 import com.example.photouploaderapp.R
 
 class UploadService : Service() {
+
+    private data class UploadTask(
+        val file: DocumentFile,
+        val folderName: String,
+        val mediaType: String,
+        val topicId: Int?
+    )
     private val TAG = "UploadService"
 
     private lateinit var botToken: String
@@ -30,7 +37,7 @@ class UploadService : Service() {
 
     private lateinit var telegramBot: TelegramBot
     private lateinit var handler: Handler
-    private val uploadQueue: Queue<DocumentFile> = LinkedList()
+    private val uploadQueue: Queue<UploadTask> = LinkedList()
     private val queueLock = Any()
     private var isProcessing = false
     private val delayBetweenUploads = 2000L
@@ -117,18 +124,18 @@ class UploadService : Service() {
         })
     }
 
-    private fun processFile(file: DocumentFile) {
-        val fileName = file.name ?: return
+    private fun processFile(task: UploadTask) {
+        val fileName = task.file.name ?: return
 
-        telegramBot.sendDocument(file) { success ->
+        telegramBot.sendDocument(task.file, task.topicId) { success ->
             synchronized(queueLock) {
                 isProcessing = false
 
                 if (success) {
-                    markFileAsSent(fileName)
+                    markFileAsSent(fileName, task.folderName, task.mediaType)
                     sendLog(getString(R.string.file_sent_successfully, fileName))
                 } else {
-                    uploadQueue.offer(file)
+                    uploadQueue.offer(task)
                     sendLog(getString(R.string.error_sending_file_queued, fileName))
                 }
             }
@@ -137,9 +144,10 @@ class UploadService : Service() {
         }
     }
 
-    private fun shouldProcessFile(docFile: DocumentFile): Boolean {
+    private fun shouldProcessFile(docFile: DocumentFile, folderName: String, mediaType: String): Boolean {
+        val fileName = docFile.name ?: return false
         return docFile.isFile &&
-                !isFileSent(docFile.name ?: "") &&
+                !isFileSent(fileName, folderName, mediaType) &&
                 isValidMedia(docFile)
     }
 
@@ -174,16 +182,22 @@ class UploadService : Service() {
             val documentFolder = DocumentFile.fromTreeUri(this, uri)
 
             documentFolder?.listFiles()?.forEach { docFile ->
-                if (shouldProcessFile(docFile)) {
+                if (shouldProcessFile(docFile, folderName, currentMediaType)) {
                     synchronized(queueLock) {
-                        uploadQueue.offer(docFile)
+                        val task = UploadTask(
+                            file = docFile,
+                            folderName = this.folderName, // Берем из свойств сервиса
+                            mediaType = this.currentMediaType,
+                            topicId = this.topicId
+                        )
+                        uploadQueue.offer(task)
                     }
                     sendLog(getString(R.string.file_added_to_queue, docFile.name))
                 }
             }
         }
 
-        handler.removeCallbacksAndMessages(null)
+            handler.removeCallbacksAndMessages(null)
     }
 
     private fun isValidMedia(file: DocumentFile): Boolean {
@@ -211,13 +225,13 @@ class UploadService : Service() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
-    private fun isFileSent(fileName: String): Boolean {
-        return sentFilesPrefs.contains("${folderName}_${currentMediaType}_$fileName")
+    private fun isFileSent(fileName: String, folderName: String, mediaType: String): Boolean {
+        return sentFilesPrefs.contains("${folderName}_${mediaType}_$fileName")
     }
 
-    private fun markFileAsSent(fileName: String) {
+    private fun markFileAsSent(fileName: String, folderName: String, mediaType: String) {
         sentFilesPrefs.edit {
-            putBoolean("${folderName}_${currentMediaType}_$fileName", true)
+            putBoolean("${folderName}_${mediaType}_$fileName", true)
         }
     }
 

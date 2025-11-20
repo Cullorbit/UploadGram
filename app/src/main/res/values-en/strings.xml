@@ -85,7 +85,7 @@
     <string name="folder_name">Folder Name:</string>
     <string name="topic_number">Topic Number:</string>
     <string name="media_type">Media Type:</string>
-    <string name="log_cleared">Error parsing Telegram response: %1$s</string>
+    <string name="log_cleared">Log cleared</string>
     <string name="folder_path">Folder Path:</string>
     <string name="dark_theme_on">Dark Theme: On</string>
     <string name="dark_theme_off">Dark Theme: Off</string>

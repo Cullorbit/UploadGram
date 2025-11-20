@@ -107,41 +107,7 @@ class TelegramBot(
         performSendDocument(file, callback)
     }
 
-    fun sendDocument(docFile: DocumentFile, callback: (Boolean) -> Unit) {
-        performSendDocument(docFile, callback)
-    }
-
-    private fun performSendDocument(file: File, callback: (Boolean) -> Unit, topicId: Int? = this.topicId) {
-        val url = "https://api.telegram.org/bot$botToken/sendDocument"
-        val mediaType = "application/octet-stream".toMediaTypeOrNull()
-        val formBuilder = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("chat_id", chatId)
-            .addFormDataPart("document", file.name, file.asRequestBody(mediaType))
-
-        topicId?.let {
-            formBuilder.addFormDataPart("message_thread_id", it.toString())
-        }
-
-        val requestBody: RequestBody = formBuilder.build()
-        val request = Request.Builder()
-            .url(url)
-            .post(requestBody)
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Log.e(TAG, context.getString(R.string.error_sending_file_with_message, file.name, e.message.orEmpty()))
-                callback(false)
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                handleResponse(response, file.name, callback)
-            }
-        })
-    }
-
-    private fun performSendDocument(docFile: DocumentFile, callback: (Boolean) -> Unit, topicId: Int? = this.topicId) {
+    fun sendDocument(docFile: DocumentFile, topicId: Int? = this.topicId, callback: (Boolean) -> Unit) { // <--- ДОБАВЛЕН ПАРАМЕТР topicId
         val url = "https://api.telegram.org/bot$botToken/sendDocument"
         val mediaType = "application/octet-stream".toMediaTypeOrNull()
         val inputStream = context.contentResolver.openInputStream(docFile.uri)
@@ -171,6 +137,36 @@ class TelegramBot(
 
             override fun onResponse(call: Call, response: Response) {
                 handleResponse(response, docFile.name.toString(), callback)
+            }
+        })
+    }
+
+    private fun performSendDocument(file: File, callback: (Boolean) -> Unit, topicId: Int? = this.topicId) {
+        val url = "https://api.telegram.org/bot$botToken/sendDocument"
+        val mediaType = "application/octet-stream".toMediaTypeOrNull()
+        val formBuilder = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("chat_id", chatId)
+            .addFormDataPart("document", file.name, file.asRequestBody(mediaType))
+
+        topicId?.let {
+            formBuilder.addFormDataPart("message_thread_id", it.toString())
+        }
+
+        val requestBody: RequestBody = formBuilder.build()
+        val request = Request.Builder()
+            .url(url)
+            .post(requestBody)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e(TAG, context.getString(R.string.error_sending_file_with_message, file.name, e.message.orEmpty()))
+                callback(false)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                handleResponse(response, file.name, callback)
             }
         })
     }

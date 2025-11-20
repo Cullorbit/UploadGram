@@ -25,8 +25,8 @@
     <string name="no_internet_connection">Отсутствует интернет-соединение.</string>
     <string name="topic_not_exist">Тема №%1$s не существует. Проверьте номер темы.</string>
     <string name="photo_and_video">Фото и видео</string>
-    <string name="only_photo">Только фото</string>
-    <string name="only_video">Только видео</string>
+    <string name="only_photo">фото</string>
+    <string name="only_video">видео</string>
     <string name="set_media_type">Задать тип медиа</string>
     <string name="ok">OK</string>
     <string name="cancel">Отмена</string>
@@ -102,7 +102,7 @@
     <string name="theme_does_not_exist">Ответ проверки темы</string>
     <string name="telegram_response_parse_error">Тема существует</string>
     <string name="check_theme_error_code">Тема не существует</string>
-    <string name="log_cleared">Ошибка парсинга в Телеграм: %1$s</string>
+    <string name="log_cleared">Лог очищен</string>
     <string name="all_media">все</string>
     <string name="sync_cancelled">Синхронизация отменена</string>
     <string name="sync_cancelled_for_folder">Синхронизация для папки отменена</string>
@@ -113,6 +113,11 @@
     <string name="sync_settings">Настройки синхронизации</string>
     <string name="toggle_theme">Переключить тему приложения</string>
     <string name="reset_app_settings">Сбросить настройки приложения</string>
+    <string-array name="media_type_values">
+        <item>all</item>
+        <item>photo</item>
+        <item>video</item>
+    </string-array>
 
     <!-- <string name="navigation_drawer_open">Open navigation drawer</string> -->
 
