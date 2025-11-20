@@ -43,7 +43,7 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
             chatId = chatId,
             topicId = topicId,
             file = cachedFile,
-            originalFileName = originalFileName
+            fileName = originalFileName
         )
 
         if (isSuccess) {
@@ -51,16 +51,16 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
             sendLog(context.getString(R.string.file_sent_successfully, originalFileName), folderName)
             cachedFile.delete()
 
-            // Отмечаем ВЕСЬ файл как отправленный только после отправки ПОСЛЕДНЕЙ части
-            if (isLastPart) {
+            if (isLastPart && originalFileForMark.isNotEmpty()) {
                 markFileAsSent(context, originalFileForMark, folderName, mediaType)
+            } else if (isLastPart) {
+                markFileAsSent(context, originalFileName, folderName, mediaType)
             }
             return Result.success()
         } else {
             Log.w(TAG, "Work FAILURE for $originalFileName. Reason: $errorMessage")
             val errorText = errorMessage ?: context.getString(R.string.error_sending_file_queued, originalFileName)
             sendLog(errorText, folderName)
-            // Если ошибка, проваливаем всю цепочку
             return Result.failure()
         }
     }
@@ -80,4 +80,3 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
         Log.d(TAG, "Original file marked as sent: $uniqueFileId")
     }
 }
-    

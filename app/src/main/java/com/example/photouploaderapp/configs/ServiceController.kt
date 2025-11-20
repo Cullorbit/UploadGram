@@ -1,9 +1,7 @@
 package com.example.photouploaderapp.configs
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
-import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -50,6 +48,7 @@ class ServiceController(private val context: Context, private val settingsManage
             val fileName = docFile.name ?: return@forEach
             val uniqueFileId = "${folder.name}_${folder.mediaType}_$fileName"
             if (docFile.isFile && !sentFilesPrefs.contains(uniqueFileId) && isValidMedia(docFile, folder.mediaType)) {
+                // ВОЗВРАЩАЕМ ЛОГИКУ РАЗДЕЛЕНИЯ НА ЧАСТИ
                 val cachedFiles = cacheAndSplitFile(docFile)
                 if (cachedFiles.isEmpty()) {
                     Log.e(TAG, "Failed to cache or split file: $fileName")
@@ -83,7 +82,9 @@ class ServiceController(private val context: Context, private val settingsManage
                     workRequests.add(uploadWorkRequest)
                 }
 
-                workManager.beginUniqueWork(uniqueFileId, ExistingWorkPolicy.KEEP, workRequests)
+                // ВОЗВРАЩАЕМ ЛОГИКУ ПОСЛЕДОВАТЕЛЬНОЙ ОЧЕРЕДИ
+                workManager.beginUniqueWork(uniqueFileId, ExistingWorkPolicy.KEEP, workRequests.first())
+                    .then(workRequests.drop(1))
                     .enqueue()
 
                 Log.d(TAG, "Enqueued ${workRequests.size} part(s) for: $fileName in folder ${folder.name}")
@@ -109,9 +110,10 @@ class ServiceController(private val context: Context, private val settingsManage
                         val partFile = File(context.cacheDir, "${System.currentTimeMillis()}-${docFile.name}.part$partNumber")
                         var currentPartSize: Long = 0
                         FileOutputStream(partFile).use { outputStream ->
+                            var bytesRead: Int
                             while (currentPartSize < CHUNK_SIZE_BYTES) {
                                 val bytesToRead = minOf(buffer.size.toLong(), CHUNK_SIZE_BYTES - currentPartSize).toInt()
-                                val bytesRead = inputStream.read(buffer, 0, bytesToRead)
+                                bytesRead = inputStream.read(buffer, 0, bytesToRead)
                                 if (bytesRead == -1) break
                                 outputStream.write(buffer, 0, bytesRead)
                                 currentPartSize += bytesRead
@@ -159,8 +161,7 @@ class ServiceController(private val context: Context, private val settingsManage
     }
 
     fun stopService() {
-        workManager.cancelAllWork()
+        workManager.cancelAllWorkByTag("upload_work")
         (context as? MainActivity)?.showToast(context.getString(R.string.service_stopped))
     }
 }
-    
