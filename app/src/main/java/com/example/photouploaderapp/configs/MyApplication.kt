@@ -4,4 +4,8 @@ import android.app.Application
 
 class MyApplication : Application() {
     var folderAdapter: FolderAdapter? = null
+
+    override fun onCreate() {
+        super.onCreate()
+    }
 }

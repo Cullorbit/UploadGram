@@ -113,4 +113,6 @@
     <string name="sync_settings">Sync settings</string>
     <string name="toggle_theme">Toggle theme</string>
     <string name="reset_app_settings">Reset app settings</string>
+    <string name="scanning_and_enqueuing">Scanning folders and enqueuing tasks...</string>
+    <string name="no_folders_for_sync">No folders selected for synchronization.</string>
 </resources>

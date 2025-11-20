@@ -20,7 +20,6 @@ import androidx.fragment.app.DialogFragment
 import com.example.photouploaderapp.R
 import androidx.core.content.edit
 import androidx.core.net.toUri
-import com.example.photouploaderapp.telegrambot.UploadService
 
 class EditFolderDialog(
     private val settingsManager: SettingsManager,
@@ -53,16 +52,13 @@ class EditFolderDialog(
         folderPath = view.findViewById(R.id.etFolderPath)
         val btnSelectFolder = view.findViewById<Button>(R.id.btnSelectFolder)
 
-        // Устанавливаем начальные значения для редактируемой папки
         folderName.setText(folder.name)
         topicNumber.setText(folder.topic)
         folderPath.setText(folder.path)
 
-        // Инициализируем список типов медиа
         val mediaTypes = resources.getStringArray(R.array.media_types)
         mediaType.setSelection(mediaTypes.indexOf(folder.mediaType))
 
-        // Обработчик выбора папки
         btnSelectFolder.setOnClickListener {
             folderPickerLauncher.launch(null)
         }
@@ -81,24 +77,12 @@ class EditFolderDialog(
                     chatId = settingsManager.chatId ?: ""
                 )
 
-                resetFileStatus()
-
                 listener.onFolderEdited(editedFolder)
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .create()
     }
 
-    private fun resetFileStatus() {
-        UploadService.clearSentFilesForFolder(
-            requireContext(),
-            folder.name,
-            folder.mediaType // Original media type before edit
-        )
-        Log.d("EditFolderDialog", "Cleared files for: ${folder.name}/${folder.mediaType}")
-    }
-
-    // Проверка на соответствие типа медиа
     private fun isValidMedia(file: DocumentFile): Boolean {
         val mediaType = folder.mediaType
         val fileName = file.name?.lowercase() ?: return false
@@ -110,13 +94,11 @@ class EditFolderDialog(
         }
     }
 
-    // Проверка на изображение
     private fun isImage(fileName: String): Boolean {
         return fileName.endsWith(".jpg", true) || fileName.endsWith(".jpeg", true) ||
                 fileName.endsWith(".png", true) || fileName.endsWith(".gif", true)
     }
 
-    // Проверка на видео
     private fun isVideo(fileName: String): Boolean {
         return fileName.endsWith(".mp4", true) || fileName.endsWith(".avi", true) ||
                 fileName.endsWith(".mkv", true) || fileName.endsWith(".mov", true) ||

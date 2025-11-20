@@ -9,7 +9,8 @@
         android:theme="@style/AppTheme.Light"
         android:name=".configs.MyApplication"
         android:requestLegacyExternalStorage="true"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <activity android:name=".MainActivity"
             android:exported="true"
@@ -20,15 +21,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <service
-            android:name=".telegrambot.UploadService"
-            android:exported="false"
-            android:stopWithTask="true"/>
-
-        <service android:name=".configs.FolderSyncService"
-            android:enabled="true"
-            android:exported="false"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

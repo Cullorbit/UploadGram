@@ -30,7 +30,6 @@ import com.google.android.material.navigation.NavigationView
 import com.example.photouploaderapp.configs.*
 import com.example.photouploaderapp.telegrambot.TelegramResponse
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import okhttp3.Call
 import okhttp3.Callback
@@ -40,6 +39,7 @@ import okhttp3.Response
 import java.io.IOException
 import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
+import com.google.gson.reflect.TypeToken
 
 class MainActivity : AppCompatActivity() {
 
@@ -147,12 +147,11 @@ class MainActivity : AppCompatActivity() {
             logHelper.clearLog()
         }
 
-        // Инициализация компонентов управления
         serviceController = ServiceController(this, settingsManager)
         uiUpdater = UIUpdater(this, settingsManager)
+        uiUpdater.observeWorkStatus()
         navigationHandler = NavigationHandler(this, this::showMediaTypeDialog, settingsManager, uiUpdater)
 
-        // Инициализация ActivityResultLauncher для выбора папки
         folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             uri?.let {
                 contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
@@ -191,7 +190,6 @@ class MainActivity : AppCompatActivity() {
             override fun onFolderEdited(editedFolder: Folder) {
                 if (folder != editedFolder) {
                     serviceController.stopService()
-                    uiUpdater.updateServiceButtons(serviceController.isServiceActive())
                     showToast(getString(R.string.folder_changes_detected))
                 }
                 editedFolder.botToken = settingsManager.botToken ?: ""
@@ -249,7 +247,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         uiUpdater.updateSettingsDisplay()
-        updateServiceButtons()
         if (settingsManager.botToken.isNullOrEmpty() || settingsManager.chatId.isNullOrEmpty()) {
             showToast(getString(R.string.configure_bot_token_chat_id))
         }
@@ -257,38 +254,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtonListeners() {
         btnStartService.setOnClickListener {
-            if (serviceController.isServiceActive()) {
-                showToast(getString(R.string.service_already_running))
+            val foldersToSync = folders.filter { it.isSyncing }
+            if (foldersToSync.isNotEmpty()) {
+                serviceController.startService(foldersToSync)
+                showToast(getString(R.string.scanning_and_enqueuing))
+                uiUpdater.updateServiceButtons(true)
             } else {
-                val networkUtils = NetworkUtils(this)
-                val syncOption = settingsManager.syncOption
-
-                when (syncOption) {
-                    "wifi_only" -> {
-                        if (!networkUtils.isWifiConnected()) {
-                            showToast(getString(R.string.sync_available_wifi_only))
-                            return@setOnClickListener
-                        }
-                    }
-                    else -> {
-                        if (!networkUtils.isConnected()) {
-                            showToast(getString(R.string.no_internet_connection))
-                            return@setOnClickListener
-                        }
-                    }
-                }
-
-                val foldersToSync = folders.filter { it.isSyncing }
-                if (foldersToSync.isNotEmpty()) {
-                    serviceController.startService(foldersToSync)
-                    uiUpdater.updateServiceButtons(serviceController.isServiceActive())
-                }
+                showToast(getString(R.string.no_folders_for_sync))
             }
         }
 
         btnStopService.setOnClickListener {
             serviceController.stopService()
-            uiUpdater.updateServiceButtons(serviceController.isServiceActive())
+            uiUpdater.updateServiceButtons(false)
         }
 
         btnClearLog.setOnClickListener {
@@ -341,7 +319,6 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(logReceiver, IntentFilter("com.example.photouploaderapp.UPLOAD_LOG"))
-        updateServiceButtons()
     }
 
     override fun onPause() {
@@ -382,10 +359,6 @@ class MainActivity : AppCompatActivity() {
         delegate.applyDayNight()
         uiUpdater.updateSettingsDisplay()
         recreate()
-    }
-
-    private fun updateServiceButtons() {
-        uiUpdater.updateServiceButtons(serviceController.isServiceActive())
     }
 
     fun showMediaTypeDialog() {

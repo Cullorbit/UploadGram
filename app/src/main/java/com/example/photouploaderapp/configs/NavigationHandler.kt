@@ -140,7 +140,6 @@ class NavigationHandler(
                 settingsManager.clearSettings()
                 uiUpdater.updateSettingsDisplay()
                 activity.showToast(activity.getString(R.string.settings_reset))
-                uiUpdater.updateServiceButtons(false)
                 dialog.dismiss()
             }
             .setNegativeButton(activity.getString(R.string.no)) { dialog, _ ->

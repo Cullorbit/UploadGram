@@ -118,6 +118,8 @@
         <item>photo</item>
         <item>video</item>
     </string-array>
+    <string name="scanning_and_enqueuing">Сканирование папок и постановка задач в очередь...</string>
+    <string name="no_folders_for_sync">Нет папок, отмеченных для синхронизации.</string>
 
     <!-- <string name="navigation_drawer_open">Open navigation drawer</string> -->
 

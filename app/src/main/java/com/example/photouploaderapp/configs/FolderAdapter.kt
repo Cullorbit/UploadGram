@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.photouploaderapp.R
 import android.widget.ImageView
 import com.google.gson.Gson
-import com.google.common.reflect.TypeToken
+import com.google.gson.reflect.TypeToken
 
 class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Adapter<FolderAdapter.FolderViewHolder>() {
 
