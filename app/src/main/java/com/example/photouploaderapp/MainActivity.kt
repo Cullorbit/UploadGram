@@ -5,12 +5,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import android.widget.Button
 import android.widget.ScrollView
 import android.widget.TextView
@@ -21,25 +21,20 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
+import androidx.documentfile.provider.DocumentFile
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.navigation.NavigationView
 import com.example.photouploaderapp.configs.*
-import com.example.photouploaderapp.telegrambot.TelegramResponse
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.navigation.NavigationView
 import com.google.gson.Gson
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import java.io.IOException
-import androidx.core.content.edit
-import androidx.documentfile.provider.DocumentFile
 import com.google.gson.reflect.TypeToken
+import kotlin.io.path.exists
 
 class MainActivity : AppCompatActivity() {
 
@@ -56,150 +51,42 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerViewFolders: RecyclerView
     private lateinit var fabAddFolder: FloatingActionButton
 
-    // Компоненты управления
     private lateinit var settingsManager: SettingsManager
     private lateinit var serviceController: ServiceController
     private lateinit var navigationHandler: NavigationHandler
     private lateinit var uiUpdater: UIUpdater
 
-    // ActivityResultLauncher для выбора папки
     lateinit var folderPickerLauncher: ActivityResultLauncher<Uri?>
 
-    // BroadcastReceiver для получения логов от UploadService
     private val logReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val message = intent?.getStringExtra("log_message") ?: return
-            val folderName = intent.getStringExtra("folder_name") ?: "Папка"
-            tvLog.append("\n\n[$folderName] $message")
-            scrollViewLog.post { scrollViewLog.fullScroll(ScrollView.FOCUS_DOWN) }
+            logHelper.log(message)
         }
     }
 
-    private val sharedPreferences by lazy {
+    private val sharedPreferences: SharedPreferences by lazy {
         getSharedPreferences("Folders", Context.MODE_PRIVATE)
     }
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onCreate(savedInstanceState: Bundle?) {
         settingsManager = SettingsManager(this)
-
-        val isDarkTheme = settingsManager.isDarkTheme
-        setTheme(if (isDarkTheme) R.style.AppTheme_Dark else R.style.AppTheme_Light)
-        AppCompatDelegate.setDefaultNightMode(
-            if (settingsManager.isDarkTheme)
-                AppCompatDelegate.MODE_NIGHT_YES
-            else
-                AppCompatDelegate.MODE_NIGHT_NO
-        )
+        setTheme(if (settingsManager.isDarkTheme) R.style.AppTheme_Dark else R.style.AppTheme_Light)
+        AppCompatDelegate.setDefaultNightMode(if (settingsManager.isDarkTheme) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        folderAdapter.setOnItemClickListener(object : FolderAdapter.OnItemClickListener {
-            override fun onItemClick(position: Int) {
-                showEditFolderDialog(position)
-            }
-        })
-
-        folderAdapter.setOnDeleteClickListener(object : FolderAdapter.OnDeleteClickListener {
-            override fun onDeleteClick(position: Int) {
-                if (position >= 0 && position < folders.size) {
-                    folders.removeAt(position)
-                    folderAdapter.notifyItemRemoved(position)
-                    saveFolders()
-                } else {
-                    Log.e("MainActivity", "Invalid position: $position, list size: ${folders.size}")
-                }
-            }
-        })
-
-        recyclerViewFolders = findViewById(R.id.recyclerViewFolders)
-        recyclerViewFolders.layoutManager = LinearLayoutManager(this)
-        recyclerViewFolders.adapter = folderAdapter
-
-        fabAddFolder = findViewById(R.id.fabAddFolder)
-        fabAddFolder.setOnClickListener {
-            showAddFolderDialog()
-        }
-
-        settingsManager = SettingsManager(this)
         (application as? MyApplication)?.folderAdapter = folderAdapter
-
         initViews()
+        initControllers()
+        setupRecyclerView()
+        setupListeners()
+        loadData()
 
-        // Настройка Toolbar
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(false)
-
-        folderAdapter.setOnCancelClickListener(object : FolderAdapter.OnCancelClickListener {
-            override fun onCancelClick(position: Int) {
-                folders[position].isSyncing = false
-                folderAdapter.notifyItemChanged(position)
-                saveFolders()
-            }
-        })
-
-        logHelper = LogHelper(this)
-        logHelper.getLog()
-
-        btnClearLog.setOnClickListener {
-            logHelper.clearLog()
-        }
-
-        serviceController = ServiceController(this, settingsManager)
-        uiUpdater = UIUpdater(this, settingsManager)
-        uiUpdater.observeWorkStatus()
-        navigationHandler = NavigationHandler(this, this::showMediaTypeDialog, settingsManager, uiUpdater)
-
-        folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-            uri?.let {
-                contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                settingsManager.syncFolder = it.toString()
-                uiUpdater.updateSettingsDisplay()
-            }
-        }
-        loadSettings()
-        loadFolders()
-        folderAdapter.notifyDataSetChanged()
-        
-        setupButtonListeners()
-    }
-
-    internal fun showSyncIntervalDialog() {
-        val dialog = SyncIntervalDialog(settingsManager)
-        dialog.show(supportFragmentManager, "SyncIntervalDialog")
-    }
-
-    private fun showAddFolderDialog() {
-        val dialog = AddFolderDialog(settingsManager, object : AddFolderDialog.AddFolderListener {
-            override fun onFolderAdded(folder: Folder) {
-                folders.add(folder)
-                folderAdapter.notifyDataSetChanged()
-                saveFolders()
-            }
-        })
-        dialog.show(supportFragmentManager, "AddFolderDialog")
-    }
-
-    private fun showEditFolderDialog(position: Int) {
-        val folder = folders[position]
-        val originalFolder = folder.copy()
-
-        val dialog = EditFolderDialog(settingsManager, folder, object : EditFolderDialog.EditFolderListener {
-            override fun onFolderEdited(editedFolder: Folder) {
-                if (folder != editedFolder) {
-                    serviceController.stopService()
-                    showToast(getString(R.string.folder_changes_detected))
-                }
-                editedFolder.botToken = settingsManager.botToken ?: ""
-                editedFolder.chatId = settingsManager.chatId ?: ""
-                folders[position] = editedFolder
-                folderAdapter.notifyItemChanged(position)
-                saveFolders()
-            }
-        })
-        dialog.show(supportFragmentManager, "EditFolderDialog")
+        btnStartService.isEnabled = true
+        btnStopService.isEnabled = false
     }
 
     private fun initViews() {
@@ -210,46 +97,196 @@ class MainActivity : AppCompatActivity() {
         btnClearLog = findViewById(R.id.btnClearLog)
         tvLog = findViewById(R.id.tvLog)
         scrollViewLog = findViewById(R.id.scrollViewLog)
+        recyclerViewFolders = findViewById(R.id.recyclerViewFolders)
+        fabAddFolder = findViewById(R.id.fabAddFolder)
 
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(false)
+    }
+
+    private fun initControllers() {
+        logHelper = LogHelper(this, tvLog, scrollViewLog)
+        serviceController = ServiceController(this, settingsManager)
+        uiUpdater = UIUpdater(this, settingsManager)
+        navigationHandler = NavigationHandler(this, this::showMediaTypeDialog, settingsManager, uiUpdater)
+    }
+
+    private fun setupRecyclerView() {
+        recyclerViewFolders.layoutManager = LinearLayoutManager(this)
+        recyclerViewFolders.adapter = folderAdapter
+    }
+
+    private fun setupListeners() {
         navigationView.setNavigationItemSelectedListener { menuItem ->
             navigationHandler.handleNavigationItemSelected(menuItem)
             drawerLayout.closeDrawer(GravityCompat.END)
             true
         }
-    }
 
-    private fun loadSettings() {
-        settingsManager.syncFolder?.let { uriStr ->
-            try {
-                val uri = Uri.parse(uriStr)
-                if (!DocumentFile.isDocumentUri(this, uri)) {
-                    settingsManager.syncFolder = null
-                    return@let
-                }
-                // Логируем сохранённые разрешения
-                contentResolver.persistedUriPermissions.forEach {
-                    Log.d(TAG, "Persisted URI: ${it.uri}, writePermission: ${it.isWritePermission}")
-                }
-                // Проверяем наличие разрешения с использованием toString()
-                val hasPermission = contentResolver.persistedUriPermissions.any {
-                    it.uri.toString() == uri.toString() && it.isWritePermission
-                }
-                if (!hasPermission) {
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    )
-                    Log.d(TAG, "Persisted permissions restored")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error restoring folder permissions", e)
-                settingsManager.syncFolder = null
+        fabAddFolder.setOnClickListener { showAddFolderDialog() }
+        btnClearLog.setOnClickListener {
+            logHelper.clearLog()
+        }
+        setupButtonListeners()
+        setupAdapterListeners()
+
+        folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            uri?.let {
             }
         }
+    }
+
+    private fun setupAdapterListeners() {
+        folderAdapter.setOnItemClickListener(object : FolderAdapter.OnItemClickListener {
+            override fun onItemClick(position: Int) {
+                showEditFolderDialog(position)
+            }
+        })
+
+        folderAdapter.setOnDeleteClickListener(object : FolderAdapter.OnDeleteClickListener {
+            override fun onDeleteClick(position: Int) {
+                if (position in folders.indices) {
+                    val removedFolderName = folders[position].name
+                    folders.removeAt(position)
+                    folderAdapter.notifyItemRemoved(position)
+                    saveFolders()
+                    logHelper.log("Папка '$removedFolderName' удалена.")
+                    serviceController.stopService()
+                    btnStartService.isEnabled = true
+                    btnStopService.isEnabled = false
+                }
+            }
+        })
+
+        folderAdapter.setOnResetCacheClickListener(object : FolderAdapter.OnResetCacheClickListener {
+            override fun onResetCacheClick(position: Int) {
+                if (position in folders.indices) {
+                    val folder = folders[position]
+                    showResetCacheConfirmationDialog(folder)
+                }
+            }
+        })
+    }
+
+    private fun showResetCacheConfirmationDialog(folder: Folder) {
+        AlertDialog.Builder(this)
+            .setTitle("Сброс кэша")
+            .setMessage("Вы уверены, что хотите сбросить кэш отправленных файлов для папки \"${folder.name}\"? Приложение забудет, какие файлы уже были отправлены, и попытается отправить их все заново.")
+            .setPositiveButton("Да, сбросить") { _, _ ->
+                resetSentFilesCacheForFolder(folder)
+                logHelper.log("Кэш для папки \"${folder.name}\" очищен.")
+                serviceController.stopService()
+                btnStartService.isEnabled = true
+                btnStopService.isEnabled = false
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun resetSentFilesCacheForFolder(folder: Folder) {
+        val sentFilesPrefs = getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
+        val editor = sentFilesPrefs.edit()
+
+        val folderPathUri = folder.path
+
+        sentFilesPrefs.all.keys.forEach { fileUriString ->
+            if (!fileUriString.startsWith(folderPathUri)) {
+                return@forEach
+            }
+
+            val docFile = DocumentFile.fromSingleUri(this, Uri.parse(fileUriString))
+            if (docFile != null && docFile.exists()) {
+                if (isValidMediaForReset(docFile, folder.mediaType)) {
+                    editor.remove(fileUriString)
+                    Log.d(TAG, "Removing from cache (matches media type): $fileUriString")
+                }
+            }
+        }
+
+        editor.apply()
+        Log.d(TAG, "Cache reset for folder path: $folderPathUri with media type: ${folder.mediaType}")
+    }
+
+    private fun isValidMediaForReset(file: DocumentFile, mediaType: String): Boolean {
+        val fileName = file.name?.lowercase() ?: return false
+        val isFilePhoto = listOf(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp").any { fileName.endsWith(it) }
+        val isFileVideo = listOf(".mp4", ".mkv", ".webm", ".avi", ".mov", ".3gp", ".flv").any { fileName.endsWith(it) }
+
+        val photoTypeString = getString(R.string.only_photo).lowercase() // "фото"
+        val videoTypeString = getString(R.string.only_video).lowercase() // "видео"
+        val allTypeString = getString(R.string.all_media).lowercase()   // "все"
+
+        return when (mediaType.lowercase()) {
+            photoTypeString -> isFilePhoto
+            videoTypeString -> isFileVideo
+            allTypeString -> isFilePhoto || isFileVideo
+            else -> false
+        }
+    }
+
+    private fun loadData() {
+        logHelper.clearSavedLog()
+        loadFolders()
         uiUpdater.updateSettingsDisplay()
         if (settingsManager.botToken.isNullOrEmpty() || settingsManager.chatId.isNullOrEmpty()) {
-            showToast(getString(R.string.configure_bot_token_chat_id))
+            logHelper.log(getString(R.string.configure_bot_token_chat_id))
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, IntentFilter("com.example.photouploaderapp.UPLOAD_LOG"))
+        checkPersistedPermissions()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.menu_settings) {
+            drawerLayout.openDrawer(GravityCompat.END)
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    internal fun showSyncIntervalDialog() {
+        SyncIntervalDialog(settingsManager).show(supportFragmentManager, "SyncIntervalDialog")
+    }
+
+    private fun showAddFolderDialog() {
+        AddFolderDialog(settingsManager, object : AddFolderDialog.AddFolderListener {
+            @SuppressLint("NotifyDataSetChanged")
+            override fun onFolderAdded(folder: Folder) {
+                folders.add(folder)
+                folderAdapter.notifyDataSetChanged()
+                saveFolders()
+                logHelper.log("Добавлена новая папка: '${folder.name}'")
+            }
+        }).show(supportFragmentManager, "AddFolderDialog")
+    }
+
+    private fun showEditFolderDialog(position: Int) {
+        val folder = folders[position]
+        EditFolderDialog(settingsManager, folder, object : EditFolderDialog.EditFolderListener {
+            override fun onFolderEdited(editedFolder: Folder) {
+                if (folder != editedFolder) {
+                    serviceController.stopService()
+                    logHelper.log(getString(R.string.folder_changes_detected))
+                }
+                folders[position] = editedFolder
+                folderAdapter.notifyItemChanged(position)
+                saveFolders()
+            }
+        }).show(supportFragmentManager, "EditFolderDialog")
     }
 
     private fun setupButtonListeners() {
@@ -257,140 +294,25 @@ class MainActivity : AppCompatActivity() {
             val foldersToSync = folders.filter { it.isSyncing }
             if (foldersToSync.isNotEmpty()) {
                 serviceController.startService(foldersToSync)
-                showToast(getString(R.string.scanning_and_enqueuing))
-                uiUpdater.updateServiceButtons(true)
+                btnStartService.isEnabled = false
+                btnStopService.isEnabled = true
             } else {
-                showToast(getString(R.string.no_folders_for_sync))
+                logHelper.log(getString(R.string.no_folders_for_sync))
             }
         }
-
         btnStopService.setOnClickListener {
             serviceController.stopService()
-            uiUpdater.updateServiceButtons(false)
-        }
-
-        btnClearLog.setOnClickListener {
-            tvLog.text = getString(R.string.log_cleared)
-            logHelper.clearLog()
-        }
-    }
-
-    private fun checkForumTopic(folder: Folder, callback: (Boolean) -> Unit) {
-        val url = "https://api.telegram.org/bot${settingsManager.botToken}/getForumTopic?chat_id=${settingsManager.chatId}&message_thread_id=${folder.topic}"
-        val request = Request.Builder().url(url).build()
-
-        client.newCall(request).enqueue(object : Callback {
-            @SuppressLint("StringFormatMatches")
-            override fun onFailure(call: Call, e: IOException) {
-                Log.e(TAG, getString(R.string.check_theme_error_message, e.message))
-                callback(false)
-            }
-
-            @SuppressLint("StringFormatInvalid")
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val responseString = response.body?.string() ?: "No response body"
-                    Log.d(TAG, getString(R.string.theme_check_response, responseString))
-                    try {
-                        val telegramResponse = gson.fromJson(responseString, TelegramResponse::class.java)
-                        if (telegramResponse.ok) {
-                            Log.d(TAG, getString(R.string.theme_exists))
-                            callback(true)
-                        } else {
-                            Log.e(TAG, getString(R.string.theme_does_not_exist, telegramResponse.description))
-                            callback(false)
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, getString(R.string.telegram_response_parse_error, e.message))
-                        callback(false)
-                    }
-                } else {
-                    Log.e(TAG, getString(R.string.check_theme_error_code, response.code, response.message))
-                    val responseBody = response.body?.string() ?: "No response body"
-                    Log.e(TAG, getString(R.string.server_response, responseBody))
-                    callback(false)
-                }
-                response.close()
-            }
-        })
-    }
-
-    override fun onResume() {
-        super.onResume()
-        LocalBroadcastManager.getInstance(this)
-            .registerReceiver(logReceiver, IntentFilter("com.example.photouploaderapp.UPLOAD_LOG"))
-    }
-
-    override fun onPause() {
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver)
-        super.onPause()
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
-        val themeItem = menu?.findItem(R.id.menu_toggle_theme)
-        themeItem?.isChecked = settingsManager.isDarkTheme
-        Log.d("MainActivity", "Menu created. Theme item checked: ${themeItem?.isChecked}")
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.menu_settings -> {
-                drawerLayout.openDrawer(GravityCompat.END)
-                true
-            }
-            R.id.menu_toggle_theme -> {
-                toggleTheme()
-                true
-            }
-            else -> navigationHandler.handleNavigationItemSelected(item) || super.onOptionsItemSelected(item)
+            btnStartService.isEnabled = true
+            btnStopService.isEnabled = false
         }
     }
 
     fun toggleTheme() {
-        val newTheme = !settingsManager.isDarkTheme
-        settingsManager.isDarkTheme = newTheme
-
-        AppCompatDelegate.setDefaultNightMode(
-            if (newTheme) AppCompatDelegate.MODE_NIGHT_YES
-            else AppCompatDelegate.MODE_NIGHT_NO
-        )
-        delegate.applyDayNight()
-        uiUpdater.updateSettingsDisplay()
+        settingsManager.isDarkTheme = !settingsManager.isDarkTheme
         recreate()
     }
 
-    fun showMediaTypeDialog() {
-        val options = arrayOf(getString(R.string.photo_and_video), getString(R.string.only_photo), getString(R.string.only_video))
-        val current = settingsManager.mediaType
-        val checkedItem = when (current) {
-            "photo" -> 1
-            "video" -> 2
-            else -> 0
-        }
-        var selectedIndex = checkedItem
-
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.set_media_type))
-            .setSingleChoiceItems(options, checkedItem) { _, which ->
-                selectedIndex = which
-            }
-            .setPositiveButton(getString(R.string.ok)) { dialog, _ ->
-                val newValue = when (selectedIndex) {
-                    1 -> "photo"
-                    2 -> "video"
-                    else -> "all"
-                }
-                settingsManager.mediaType = newValue
-                showToast(getString(R.string.media_type_saved, options[selectedIndex]))
-                uiUpdater.updateSettingsDisplay()
-                dialog.dismiss()
-            }
-            .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
-                dialog.cancel()
-            }
-            .show()
+    internal fun showMediaTypeDialog() {
     }
 
     fun showToast(message: String) {
@@ -398,32 +320,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveFolders() {
-        val gson = Gson()
-        val foldersJson = gson.toJson(folders)
-        sharedPreferences.edit { putString("folders", foldersJson) }
+        val json = Gson().toJson(folders)
+        sharedPreferences.edit { putString("folders", json) }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun loadFolders() {
-        val gson = Gson()
-        val foldersJson = sharedPreferences.getString("folders", null)
-        if (foldersJson != null) {
+        val json = sharedPreferences.getString("folders", null)
+        if (json != null) {
             val type = object : TypeToken<MutableList<Folder>>() {}.type
-            folders.addAll(gson.fromJson(foldersJson, type))
-            folders.forEach { folder ->
-                if (folder.botToken.isNullOrEmpty()) {
-                    folder.botToken = settingsManager.botToken ?: ""
-                }
-                if (folder.chatId.isNullOrEmpty()) {
-                    folder.chatId = settingsManager.chatId ?: ""
-                }
+            try {
+                val savedFolders: MutableList<Folder> = Gson().fromJson(json, type)
+                folders.clear()
+                folders.addAll(savedFolders)
+                folderAdapter.notifyDataSetChanged()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load folders", e)
             }
-            Log.d("MainActivity", "Loaded folders: ${folders.size}")
+        }
+    }
+
+    private fun checkPersistedPermissions() {
+        val persistedUris = contentResolver.persistedUriPermissions
+        val persistedUriStrings = persistedUris.map { it.uri.toString() }
+
+        var permissionsLost = false
+        folders.forEach { folder ->
+            if (folder.path.isNotEmpty() && !persistedUriStrings.contains(folder.path)) {
+                logHelper.log("ВНИМАНИЕ: Потерян доступ к папке '${folder.name}'. Пожалуйста, выберите ее заново в настройках папки.")
+                permissionsLost = true
+            }
         }
     }
 
     companion object {
         private const val TAG = "MainActivity"
-        private val client = OkHttpClient()
-        private val gson = Gson()
     }
 }

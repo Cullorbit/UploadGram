@@ -3,6 +3,7 @@ package com.example.photouploaderapp.configs
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -28,6 +29,8 @@ class AddFolderDialog(private val settingsManager: SettingsManager, private val 
         super.onCreate(savedInstanceState)
         folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             if (uri != null) {
+                // Важно! Сохраняем персистентное разрешение на доступ к папке
+                requireContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 folderPath.setText(uri.toString())
             }
         }
@@ -49,7 +52,7 @@ class AddFolderDialog(private val settingsManager: SettingsManager, private val 
             folderPickerLauncher.launch(null)
         }
 
-        return AlertDialog.Builder(context)
+        return AlertDialog.Builder(requireContext())
             .setView(view)
             .setTitle(getString(R.string.add_folder))
             .setPositiveButton(getString(R.string.save)) { _, _ ->
@@ -57,7 +60,8 @@ class AddFolderDialog(private val settingsManager: SettingsManager, private val 
                     folderName.text.toString(),
                     topicNumber.text.toString(),
                     mediaType.selectedItem.toString(),
-                    folderPath.text.toString()
+                    folderPath.text.toString(),
+                    isSyncing = true // <<< ВОТ ИСПРАВЛЕНИЕ! Новая папка сразу активна.
                 )
                 settingsManager.selectedMediaType = mediaType.selectedItem.toString() // Сохраняем выбранный тип медиа
                 listener.onFolderAdded(folder)

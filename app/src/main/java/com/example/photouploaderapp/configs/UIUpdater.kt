@@ -1,35 +1,11 @@
 package com.example.photouploaderapp.configs
 
 import android.graphics.drawable.Drawable
-import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Observer
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
 import com.example.photouploaderapp.MainActivity
 import com.example.photouploaderapp.R
 
 class UIUpdater(private val activity: MainActivity, private val settingsManager: SettingsManager) {
-
-    private val workManager = WorkManager.getInstance(activity)
-
-    fun observeWorkStatus() {
-        workManager.getWorkInfosByTagLiveData("upload_work")
-            .observe(activity, Observer { workInfos ->
-                if (workInfos == null) return@Observer
-
-                // Считаем, что сервис "активен", если есть хотя бы одна работающая или поставленная в очередь задача
-                val isServiceActive = workInfos.any {
-                    it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED
-                }
-                updateServiceButtons(isServiceActive)
-            })
-    }
-
-    fun updateServiceButtons(isServiceActive: Boolean) {
-        activity.btnStartService.isEnabled = !isServiceActive
-        activity.btnStopService.isEnabled = isServiceActive
-    }
 
     fun updateSettingsDisplay() {
         val navigationView = activity.findViewById<com.google.android.material.navigation.NavigationView>(R.id.navigationView)

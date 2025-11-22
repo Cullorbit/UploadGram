@@ -6,8 +6,8 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.work.*
-import com.example.photouploaderapp.MainActivity
 import com.example.photouploaderapp.R
+import com.example.photouploaderapp.telegrambot.ScanWorker
 import com.example.photouploaderapp.telegrambot.UploadWorker
 import java.io.File
 import java.io.FileOutputStream
@@ -17,127 +17,144 @@ class ServiceController(private val context: Context, private val settingsManage
 
     private val workManager = WorkManager.getInstance(context)
     private val TAG = "ServiceController"
-    private val CHUNK_SIZE_BYTES = 49 * 1024 * 1024L
 
     fun startService(folders: List<Folder>) {
         val networkUtils = NetworkUtils(context)
         val requiredNetwork = if (settingsManager.syncOption == "wifi_only") {
             if (!networkUtils.isWifiConnected()) {
-                (context as? MainActivity)?.showToast(context.getString(R.string.sync_available_wifi_only))
+                sendLogToUI(context.getString(R.string.sync_available_wifi_only))
                 return
             }
             NetworkType.UNMETERED
         } else {
             if (!networkUtils.isConnected()) {
-                (context as? MainActivity)?.showToast(context.getString(R.string.no_internet_connection))
+                sendLogToUI(context.getString(R.string.no_internet_connection))
                 return
             }
             NetworkType.CONNECTED
         }
-        folders.filter { it.isSyncing && it.path.isNotEmpty() }.forEach { folder ->
-            scanAndEnqueue(folder, requiredNetwork)
+
+        val immediateScanRequest = OneTimeWorkRequestBuilder<ScanWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(requiredNetwork).build())
+            .setInputData(workDataOf("is_periodic" to false)) // Помечаем как НЕ периодическую
+            .addTag("immediate_scan_work")
+            .build()
+
+        workManager.enqueueUniqueWork(
+            "ImmediateScan",
+            ExistingWorkPolicy.REPLACE,
+            immediateScanRequest
+        )
+
+        sendLogToUI("Запущена первичная проверка папок...")
+    }
+
+    fun scanFolders(folders: List<Folder>, isPeriodic: Boolean) {
+        val message = if (isPeriodic) "Периодическая проверка папок..." else "Первичная проверка папок..."
+        if (isPeriodic) {
+            sendLogToUI(message)
+        }
+
+        val networkType = if (settingsManager.syncOption == "wifi_only") NetworkType.UNMETERED else NetworkType.CONNECTED
+        val allUploadRequests = mutableListOf<OneTimeWorkRequest>()
+
+        folders.filter { it.isSyncing }.forEach { folder ->
+            val requestsForFolder = createWorkRequestsForFolder(folder, networkType)
+            allUploadRequests.addAll(requestsForFolder)
+        }
+
+        if (allUploadRequests.isEmpty()) {
+            sendLogToUI("Новых файлов не найдено.")
+        } else {
+            workManager.beginUniqueWork("FileUploadChain", ExistingWorkPolicy.REPLACE, allUploadRequests.first())
+                .then(allUploadRequests.drop(1))
+                .enqueue()
+            sendLogToUI("Найдено ${allUploadRequests.size} новых файлов. Задачи поставлены в очередь.")
+        }
+
+        if (!isPeriodic) {
+            setupPeriodicScan(networkType)
         }
     }
 
-    private fun scanAndEnqueue(folder: Folder, networkType: NetworkType) {
-        val folderUri = folder.path.toUri()
-        val documentFolder = DocumentFile.fromTreeUri(context, folderUri)
-        val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
+    private fun setupPeriodicScan(requiredNetwork: NetworkType) {
+        var intervalMillis = settingsManager.syncInterval
+        if (intervalMillis < TimeUnit.MINUTES.toMillis(15)) {
+            intervalMillis = TimeUnit.MINUTES.toMillis(15)
+        }
+        val intervalToShow = TimeUnit.MILLISECONDS.toMinutes(intervalMillis)
+        val intervalUnitToShow = getIntervalUnit(intervalToShow)
+        val displayValue = if (intervalToShow >= 60) intervalToShow / 60 else intervalToShow
 
-        documentFolder?.listFiles()?.forEach { docFile ->
-            val fileName = docFile.name ?: return@forEach
-            val uniqueFileId = "${folder.name}_${folder.mediaType}_$fileName"
-            if (docFile.isFile && !sentFilesPrefs.contains(uniqueFileId) && isValidMedia(docFile, folder.mediaType)) {
-                // ВОЗВРАЩАЕМ ЛОГИКУ РАЗДЕЛЕНИЯ НА ЧАСТИ
-                val cachedFiles = cacheAndSplitFile(docFile)
-                if (cachedFiles.isEmpty()) {
-                    Log.e(TAG, "Failed to cache or split file: $fileName")
-                    return@forEach
-                }
+        val constraints = Constraints.Builder().setRequiredNetworkType(requiredNetwork).build()
+        val periodicScanRequest = PeriodicWorkRequestBuilder<ScanWorker>(intervalMillis, TimeUnit.MILLISECONDS)
+            .setConstraints(constraints)
+            .setInputData(workDataOf("is_periodic" to true))
+            .addTag("periodic_scan_work")
+            .build()
 
-                val workRequests = mutableListOf<OneTimeWorkRequest>()
-                cachedFiles.forEachIndexed { index, cachedFile ->
-                    val isLastPart = (index == cachedFiles.size - 1)
-                    val partFileName = if (cachedFiles.size > 1) "${fileName}.part${index + 1}" else fileName
+        workManager.enqueueUniquePeriodicWork(
+            "FolderScanWork",
+            ExistingPeriodicWorkPolicy.REPLACE,
+            periodicScanRequest
+        )
+        sendLogToUI("Сервис настроен. Следующая проверка будет через $displayValue $intervalUnitToShow.")
+    }
 
+    private fun getIntervalUnit(minutes: Long): String {
+        if (minutes < 60) return "минут"
+        val hours = minutes / 60
+        return when {
+            hours % 10 == 1L && hours % 100 != 11L -> "час"
+            hours % 10 in 2..4 && (hours % 100 < 10 || hours % 100 >= 20) -> "часа"
+            else -> "часов"
+        }
+    }
+
+    private fun createWorkRequestsForFolder(folder: Folder, networkType: NetworkType): List<OneTimeWorkRequest> {
+        val requests = mutableListOf<OneTimeWorkRequest>()
+        try {
+            val folderUri = folder.path.toUri()
+            val documentFolder = DocumentFile.fromTreeUri(context, folderUri)
+            val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
+
+            if (documentFolder == null || !documentFolder.canRead()) {
+                sendLogToUI("Ошибка: нет доступа к папке '${folder.name}'. Попробуйте выбрать ее заново.", "СИСТЕМА")
+                return emptyList()
+            }
+
+            documentFolder.listFiles().forEach { docFile ->
+                val fileName = docFile.name ?: return@forEach
+                val uniqueFileId = docFile.uri.toString()
+
+                if (docFile.isFile && !sentFilesPrefs.contains(uniqueFileId) && isValidMedia(docFile, folder.mediaType)) {
                     val inputData = workDataOf(
                         "KEY_BOT_TOKEN" to (folder.botToken.ifEmpty { settingsManager.botToken ?: "" }),
                         "KEY_CHAT" to (folder.chatId.ifEmpty { settingsManager.chatId ?: "" }),
-                        "KEY_FILE_PATH" to cachedFile.absolutePath,
-                        "KEY_ORIGINAL_FILE_NAME" to partFileName,
+                        "KEY_FILE_URI" to docFile.uri.toString(),
+                        "KEY_ORIGINAL_FILE_NAME" to fileName,
                         "KEY_TOPIC" to (folder.getTopicId() ?: -1),
                         "KEY_FOLDER_NAME" to folder.name,
-                        "KEY_MEDIA_TYPE" to folder.mediaType,
-                        "KEY_IS_LAST_PART" to isLastPart,
-                        "KEY_ORIGINAL_FILE_FOR_MARK" to fileName // Оригинальное имя для финальной отметки
+                        "KEY_MEDIA_TYPE" to folder.mediaType
                     )
                     val constraints = Constraints.Builder().setRequiredNetworkType(networkType).build()
                     val uploadWorkRequest = OneTimeWorkRequestBuilder<UploadWorker>()
                         .setInputData(inputData)
                         .setConstraints(constraints)
                         .setBackoffCriteria(BackoffPolicy.LINEAR, 1, TimeUnit.MINUTES)
-                        .addTag(uniqueFileId)
                         .addTag("upload_work")
                         .build()
-                    workRequests.add(uploadWorkRequest)
+                    requests.add(uploadWorkRequest)
                 }
-
-                // ВОЗВРАЩАЕМ ЛОГИКУ ПОСЛЕДОВАТЕЛЬНОЙ ОЧЕРЕДИ
-                workManager.beginUniqueWork(uniqueFileId, ExistingWorkPolicy.KEEP, workRequests.first())
-                    .then(workRequests.drop(1))
-                    .enqueue()
-
-                Log.d(TAG, "Enqueued ${workRequests.size} part(s) for: $fileName in folder ${folder.name}")
-            }
-        }
-    }
-
-    private fun cacheAndSplitFile(docFile: DocumentFile): List<File> {
-        val originalFileSize = docFile.length()
-        val tempFiles = mutableListOf<File>()
-
-        try {
-            context.contentResolver.openInputStream(docFile.uri)?.use { inputStream ->
-                if (originalFileSize <= CHUNK_SIZE_BYTES) {
-                    val tempFile = File(context.cacheDir, "${System.currentTimeMillis()}-${docFile.name}")
-                    FileOutputStream(tempFile).use { outputStream -> inputStream.copyTo(outputStream) }
-                    tempFiles.add(tempFile)
-                } else {
-                    var partNumber = 1
-                    val buffer = ByteArray(16 * 1024)
-                    var bytesCopied: Long = 0
-                    while (bytesCopied < originalFileSize) {
-                        val partFile = File(context.cacheDir, "${System.currentTimeMillis()}-${docFile.name}.part$partNumber")
-                        var currentPartSize: Long = 0
-                        FileOutputStream(partFile).use { outputStream ->
-                            var bytesRead: Int
-                            while (currentPartSize < CHUNK_SIZE_BYTES) {
-                                val bytesToRead = minOf(buffer.size.toLong(), CHUNK_SIZE_BYTES - currentPartSize).toInt()
-                                bytesRead = inputStream.read(buffer, 0, bytesToRead)
-                                if (bytesRead == -1) break
-                                outputStream.write(buffer, 0, bytesRead)
-                                currentPartSize += bytesRead
-                            }
-                        }
-                        tempFiles.add(partFile)
-                        bytesCopied += currentPartSize
-                        partNumber++
-                    }
-                }
-            } ?: run {
-                sendLogToUI("ОШИБКА КЭШИРОВАНИЯ: Не удалось получить InputStream", "СИСТЕМА")
             }
         } catch (e: Exception) {
-            val errorMessage = "ОШИБКА КЭШИРОВАНИЯ: ${e.message}"
-            Log.e(TAG, "Failed to cache or split file: ${docFile.name}", e)
-            sendLogToUI(errorMessage, "СИСТЕМА")
-            tempFiles.forEach { it.delete() }
-            return emptyList()
+            Log.e(TAG, "Error scanning folder ${folder.name}", e)
+            sendLogToUI("Критическая ошибка при сканировании папки '${folder.name}': ${e.message}", "СИСТЕМА")
         }
-        return tempFiles
+        return requests
     }
 
-    private fun sendLogToUI(message: String, folderName: String) {
+    private fun sendLogToUI(message: String, folderName: String = "СИСТЕМА") {
         val intent = android.content.Intent("com.example.photouploaderapp.UPLOAD_LOG").apply {
             putExtra("log_message", message)
             putExtra("folder_name", folderName)
@@ -162,6 +179,9 @@ class ServiceController(private val context: Context, private val settingsManage
 
     fun stopService() {
         workManager.cancelAllWorkByTag("upload_work")
-        (context as? MainActivity)?.showToast(context.getString(R.string.service_stopped))
+        workManager.cancelUniqueWork("FolderScanWork")
+        workManager.cancelUniqueWork("ImmediateScan")
+        workManager.cancelUniqueWork("FileUploadChain")
+        sendLogToUI(context.getString(R.string.service_stopped))
     }
 }
