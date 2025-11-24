@@ -58,10 +58,10 @@ class NavigationHandler(
                 activity.toggleTheme()
                 true
             }
-            R.id.menu_sync_interval -> {
+            /*R.id.menu_sync_interval -> {
                 showIntervalDialog()
                 true
-            }
+            }*/
             R.id.menu_sync_interval_set -> {
                 activity.showSyncIntervalDialog()
                 true
@@ -70,15 +70,14 @@ class NavigationHandler(
         }
     }
 
-    //Диалог выбора интервала синхронизации
     private fun showIntervalDialog() {
         val options = arrayOf(activity.getString(R.string.one_minute), activity.getString(R.string.ten_minutes), activity.getString(R.string.thirty_minutes), activity.getString(R.string.sixty_minutes))
         val currentInterval = settingsManager.syncInterval
         val checkedItem = when (currentInterval) {
-            60 * 1000L -> 0 // 1 минута в миллисекундах
-            600 * 1000L -> 1 // 10 минут в миллисекундах
-            1800 * 1000L -> 2 // 30 минут в миллисекундах
-            3600 * 1000L -> 3 // 60 минут в миллисекундах
+            60 * 1000L -> 0
+            600 * 1000L -> 1
+            1800 * 1000L -> 2
+            3600 * 1000L -> 3
             else -> 0
         }
 
@@ -101,7 +100,6 @@ class NavigationHandler(
             }
             .show()
     }
-    //Диалог выбора номера темы
     private fun showInputDialog(title: String, hint: String, key: String) {
         val builder = AlertDialog.Builder(activity)
         builder.setTitle(title)
@@ -131,7 +129,6 @@ class NavigationHandler(
         builder.show()
     }
 
-    //Сброс настроек приложения
     private fun resetSettings() {
         AlertDialog.Builder(activity)
             .setTitle(activity.getString(R.string.reset_settings))
