@@ -1,63 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="24dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/folder_name" />
-
-    <EditText
-        android:id="@+id/etFolderName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/topic_number" />
-
-    <EditText
-        android:id="@+id/etTopicNumber"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilFolderName"
+        style="@style/Widget.Material3.TextInputLayout.FilledBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="number" />
+        android:hint="@string/folder_name">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/media_type" />
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etFolderName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
-    <Spinner
-        android:id="@+id/spinnerMediaType"
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilTopicNumber"
+        style="@style/Widget.Material3.TextInputLayout.FilledBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:entries="@array/media_types" />
+        android:layout_marginTop="16dp"
+        android:hint="@string/topic_number">
 
-    <TextView
-        android:layout_width="wrap_content"
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etTopicNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilMediaType"
+        style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/folder_path"
-        android:layout_marginTop="16dp" /> <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal">
+        android:layout_marginTop="16dp"
+        android:hint="@string/media_type">
 
-    <EditText
-        android:id="@+id/etFolderPath"
-        android:layout_width="0dp"
+        <AutoCompleteTextView
+            android:id="@+id/spinnerMediaType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            app:simpleItems="@array/media_types" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1" />
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/btnSelectFolder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/select" />
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilFolderPath"
+            style="@style/Widget.Material3.TextInputLayout.FilledBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/folder_path">
 
-</LinearLayout>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etFolderPath"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:longClickable="false"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSelectFolder"
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginStart="8dp"
+            app:icon="@drawable/ic_folder" />
+    </LinearLayout>
 
 </LinearLayout>

@@ -1,18 +1,13 @@
 package com.example.photouploaderapp.configs
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.photouploaderapp.R
+import com.example.photouploaderapp.databinding.FolderItemBinding
 
 class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Adapter<FolderAdapter.FolderViewHolder>() {
 
-    // --- Интерфейсы для кликов ---
     interface OnItemClickListener {
         fun onItemClick(position: Int)
     }
@@ -25,41 +20,23 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
         fun onResetCacheClick(position: Int)
     }
 
-    // --- Слушатели ---
     private var itemClickListener: OnItemClickListener? = null
     private var deleteClickListener: OnDeleteClickListener? = null
     private var resetCacheClickListener: OnResetCacheClickListener? = null
     private lateinit var recyclerView: RecyclerView
 
-    // --- Сеттеры для слушателей ---
     fun setOnItemClickListener(listener: OnItemClickListener) { this.itemClickListener = listener }
     fun setOnDeleteClickListener(listener: OnDeleteClickListener) { this.deleteClickListener = listener }
     fun setOnResetCacheClickListener(listener: OnResetCacheClickListener) { this.resetCacheClickListener = listener }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FolderViewHolder {
-        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.folder_item, parent, false)
-        return FolderViewHolder(itemView)
+        val binding = FolderItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return FolderViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: FolderViewHolder, position: Int) {
         val currentFolder = folders[position]
-        holder.folderName.text = currentFolder.name
-        val folderStatus = if (currentFolder.path.isNotEmpty()) holder.itemView.context.getString(R.string.selected) else holder.itemView.context.getString(R.string.not_selected)
-        holder.folderDetails.text = holder.itemView.context.getString(R.string.folder_details, currentFolder.topic.ifEmpty { "-" }, currentFolder.mediaType, folderStatus)
-        holder.ivFolderIcon.setImageResource(R.drawable.ic_folder)
-
-        // Обработчики кликов
-        holder.itemView.setOnClickListener {
-            itemClickListener?.onItemClick(position)
-        }
-
-        holder.deleteButton.setOnClickListener {
-            deleteClickListener?.onDeleteClick(holder.adapterPosition)
-        }
-
-        holder.resetCacheButton.setOnClickListener {
-            resetCacheClickListener?.onResetCacheClick(holder.adapterPosition)
-        }
+        holder.bind(currentFolder)
     }
 
     override fun getItemCount() = folders.size
@@ -68,14 +45,34 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
         super.onAttachedToRecyclerView(recyclerView)
         this.recyclerView = recyclerView
     }
+    inner class FolderViewHolder(private val binding: FolderItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
-    // --- ViewHolder ---
-    class FolderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val folderName: TextView = itemView.findViewById(R.id.tvFolderName)
-        val folderDetails: TextView = itemView.findViewById(R.id.tvFolderDetails)
-        val deleteButton: ImageButton = itemView.findViewById(R.id.btnDeleteFolder)
-        val progressBar: ProgressBar = itemView.findViewById(R.id.progressBar)
-        val ivFolderIcon: ImageView = itemView.findViewById(R.id.ivFolderIcon)
-        val resetCacheButton: ImageButton = itemView.findViewById(R.id.btnResetCache)
+        init {
+            itemView.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    itemClickListener?.onItemClick(adapterPosition)
+                }
+            }
+
+            binding.btnDeleteFolder.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    deleteClickListener?.onDeleteClick(adapterPosition)
+                }
+            }
+
+            binding.btnResetCache.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    resetCacheClickListener?.onResetCacheClick(adapterPosition)
+                }
+            }
+        }
+
+        fun bind(folder: Folder) {
+            val context = itemView.context
+            binding.tvFolderName.text = folder.name
+            val folderStatus = if (folder.path.isNotEmpty()) context.getString(R.string.selected) else context.getString(R.string.not_selected)
+            binding.tvFolderDetails.text = context.getString(R.string.folder_details, folder.topic.ifEmpty { "-" }, folder.mediaType, folderStatus)
+            binding.ivFolderIcon.setImageResource(R.drawable.ic_folder)
+        }
     }
 }

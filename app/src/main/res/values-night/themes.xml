@@ -1,0 +1,31 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Base.Theme.UploadGram" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Настройка цветов Material 3 для темного режима. -->
+        <item name="colorPrimary">@color/m3_dark_primary</item>
+        <item name="colorOnPrimary">@color/m3_dark_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/m3_dark_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/m3_dark_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/m3_dark_secondary</item>
+        <item name="colorOnSecondary">@color/m3_dark_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/m3_dark_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/m3_dark_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/m3_dark_tertiary</item>
+        <item name="colorOnTertiary">@color/m3_dark_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_dark_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/m3_dark_onTertiaryContainer</item>
+        <item name="colorError">@color/m3_dark_error</item>
+        <item name="colorOnError">@color/m3_dark_onError</item>
+        <item name="colorErrorContainer">@color/m3_dark_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/m3_dark_onErrorContainer</item>
+        <item name="android:colorBackground">@color/m3_dark_background</item>
+        <item name="colorOnBackground">@color/m3_dark_onBackground</item>
+        <item name="colorSurface">@color/m3_dark_surface</item>
+        <item name="colorOnSurface">@color/m3_dark_onSurface</item>
+        <item name="colorSurfaceVariant">@color/m3_dark_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_dark_onSurfaceVariant</item>
+        <item name="colorOutline">@color/m3_dark_outline</item>
+        <item name="colorSurfaceInverse">@color/m3_dark_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/m3_dark_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/m3_dark_inversePrimary</item>
+    </style>
+</resources>

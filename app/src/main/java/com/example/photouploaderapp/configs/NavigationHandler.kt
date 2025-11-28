@@ -1,9 +1,11 @@
 package com.example.photouploaderapp.configs
 
 import android.view.MenuItem
-import androidx.appcompat.app.AlertDialog
+import android.widget.EditText
 import com.example.photouploaderapp.MainActivity
 import com.example.photouploaderapp.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputLayout
 
 class NavigationHandler(
     private val activity: MainActivity,
@@ -11,14 +13,15 @@ class NavigationHandler(
     private val settingsManager: SettingsManager,
     private val uiUpdater: UIUpdater
 ) {
-    //Общий стек навигации приложения
+
     fun handleNavigationItemSelected(menuItem: MenuItem): Boolean {
         return when (menuItem.itemId) {
             R.id.menu_select_bot_token -> {
                 showInputDialog(
                     title = activity.getString(R.string.set_bot_token),
                     hint = activity.getString(R.string.enter_bot_token),
-                    key = "KEY_BOT_TOKEN"
+                    key = "KEY_BOT_TOKEN",
+                    currentValue = settingsManager.botToken
                 )
                 true
             }
@@ -26,7 +29,8 @@ class NavigationHandler(
                 showInputDialog(
                     title = activity.getString(R.string.set_chat_id),
                     hint = activity.getString(R.string.enter_chat_id),
-                    key = "KEY_CHAT"
+                    key = "KEY_CHAT",
+                    currentValue = settingsManager.chatId
                 )
                 true
             }
@@ -34,34 +38,10 @@ class NavigationHandler(
                 showSyncOptionsDialog()
                 true
             }
-           /* R.id.menu_select_topic -> {
-                showInputDialog(
-                    title = "Задать номер темы",
-                    hint = "Введите номер темы",
-                    key = "KEY_TOPIC"
-                )
-                true
-            }
-            R.id.menu_select_media_type -> {
-                showMediaTypeDialog()
-                true
-            }
-            R.id.menu_select_folder -> {
-                activity.folderPickerLauncher.launch(null)
-                true
-            }*/
             R.id.menu_reset_settings -> {
                 resetSettings()
                 true
             }
-            R.id.menu_toggle_theme -> {
-                activity.toggleTheme()
-                true
-            }
-            /*R.id.menu_sync_interval -> {
-                showIntervalDialog()
-                true
-            }*/
             R.id.menu_sync_interval_set -> {
                 activity.showSyncIntervalDialog()
                 true
@@ -70,56 +50,37 @@ class NavigationHandler(
         }
     }
 
-    private fun showIntervalDialog() {
-        val options = arrayOf(activity.getString(R.string.one_minute), activity.getString(R.string.ten_minutes), activity.getString(R.string.thirty_minutes), activity.getString(R.string.sixty_minutes))
-        val currentInterval = settingsManager.syncInterval
-        val checkedItem = when (currentInterval) {
-            60 * 1000L -> 0
-            600 * 1000L -> 1
-            1800 * 1000L -> 2
-            3600 * 1000L -> 3
-            else -> 0
-        }
-
-        AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.sync_interval))
-            .setSingleChoiceItems(options, checkedItem) { _, which ->
-                when (which) {
-                    0 -> settingsManager.syncInterval = 60 * 1000L
-                    1 -> settingsManager.syncInterval = 600 * 1000L
-                    2 -> settingsManager.syncInterval = 1800 * 1000L
-                    3 -> settingsManager.syncInterval = 3600 * 1000L
-                }
-                uiUpdater.updateSettingsDisplay()
-            }
-            .setPositiveButton(activity.getString(R.string.ok)) { dialog, _ ->
-                dialog.dismiss()
-            }
-            .setNegativeButton(activity.getString(R.string.cancel)) { dialog, _ ->
-                dialog.cancel()
-            }
-            .show()
-    }
-    private fun showInputDialog(title: String, hint: String, key: String) {
-        val builder = AlertDialog.Builder(activity)
+    private fun showInputDialog(title: String, hint: String, key: String, currentValue: String?) {
+        val builder = MaterialAlertDialogBuilder(activity)
         builder.setTitle(title)
 
-        val inputField = androidx.appcompat.widget.AppCompatEditText(activity).apply {
+        val textInputLayout = TextInputLayout(activity).apply {
+            setPadding(
+                (19 * resources.displayMetrics.density).toInt(),
+                (8 * resources.displayMetrics.density).toInt(),
+                (19 * resources.displayMetrics.density).toInt(),
+                (8 * resources.displayMetrics.density).toInt()
+            )
             this.hint = hint
         }
+        val inputField = EditText(activity).apply {
+            setText(currentValue)
+        }
+        textInputLayout.addView(inputField)
 
-        builder.setView(inputField)
-        builder.setPositiveButton(activity.getString(R.string.ok)) { dialog, _ ->
+        builder.setView(textInputLayout)
+
+
+        builder.setPositiveButton(activity.getString(R.string.save)) { dialog, _ ->
             val inputText = inputField.text.toString().trim()
             if (inputText.isNotEmpty()) {
                 settingsManager.saveSetting(key, inputText)
-                if (key == "KEY_TOPIC") {
-                    settingsManager.isTopicEnabled = true
-                }
                 uiUpdater.updateSettingsDisplay()
                 activity.showToast(activity.getString(R.string.setting_saved))
             } else {
-                activity.showToast(activity.getString(R.string.field_cannot_be_empty))
+                settingsManager.saveSetting(key, "")
+                uiUpdater.updateSettingsDisplay()
+                activity.showToast(activity.getString(R.string.setting_saved))
             }
             dialog.dismiss()
         }
@@ -130,8 +91,8 @@ class NavigationHandler(
     }
 
     private fun resetSettings() {
-        AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.reset_settings))
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(activity.getString(R.string.reset_app_settings))
             .setMessage(activity.getString(R.string.reset_settings_confirmation))
             .setPositiveButton(activity.getString(R.string.yes)) { dialog, _ ->
                 settingsManager.clearSettings()
@@ -151,8 +112,7 @@ class NavigationHandler(
             "wifi_only" -> 0
             else -> 1
         }
-
-        AlertDialog.Builder(activity)
+        MaterialAlertDialogBuilder(activity)
             .setTitle(activity.getString(R.string.synchronization))
             .setSingleChoiceItems(options, checkedItem) { dialog, which ->
                 when (which) {

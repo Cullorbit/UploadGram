@@ -1,10 +1,13 @@
-package com.example.photouploaderapp.configs
+package com.example.photouploaderapp.configsimport
 
-import android.app.AlertDialog
 import android.app.Dialog
+import com.example.photouploaderapp.configs.SettingsManager
+import com.example.photouploaderapp.configs.UIUpdater
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
+import com.example.photouploaderapp.MainActivity
 import com.example.photouploaderapp.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.concurrent.TimeUnit
 
 class SyncIntervalDialog(private val settingsManager: SettingsManager) : DialogFragment() {
@@ -18,13 +21,19 @@ class SyncIntervalDialog(private val settingsManager: SettingsManager) : DialogF
         )
         val currentInterval = getIntervalIndex(settingsManager.syncInterval)
 
-        return AlertDialog.Builder(requireContext())
+        return MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.sync_interval))
             .setSingleChoiceItems(intervals, currentInterval) { _, which ->
                 val interval = getIntervalInMillis(which)
                 settingsManager.syncInterval = interval
+                (activity as? MainActivity)?.let {
+                    val uiUpdater = UIUpdater(it, settingsManager)
+                    uiUpdater.updateSettingsDisplay()
+                }
             }
-            .setPositiveButton(getString(R.string.ok), null)
+            .setPositiveButton(getString(R.string.save)) { dialog, _ ->
+                dialog.dismiss()
+            }
             .create()
     }
 
@@ -39,7 +48,6 @@ class SyncIntervalDialog(private val settingsManager: SettingsManager) : DialogF
     }
 
     private fun getIntervalInMillis(index: Int): Long {
-
         return when (index) {
             0 -> TimeUnit.MINUTES.toMillis(15)
             1 -> TimeUnit.MINUTES.toMillis(30)

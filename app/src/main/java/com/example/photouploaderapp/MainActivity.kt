@@ -17,6 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -30,6 +31,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.photouploaderapp.configs.*
+import com.example.photouploaderapp.configsimport.SyncIntervalDialog
+import com.example.photouploaderapp.databinding.ActivityMainBinding
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.gson.Gson
@@ -37,14 +40,7 @@ import com.google.gson.reflect.TypeToken
 import kotlin.io.path.exists
 
 class MainActivity : AppCompatActivity() {
-
-    private lateinit var drawerLayout: DrawerLayout
-    private lateinit var navigationView: NavigationView
-    lateinit var btnStartService: Button
-    lateinit var btnStopService: Button
-    private lateinit var btnClearLog: Button
-    private lateinit var tvLog: TextView
-    private lateinit var scrollViewLog: ScrollView
+    lateinit var binding: ActivityMainBinding
     private val folders = mutableListOf<Folder>()
     private val folderAdapter = FolderAdapter(folders)
     private lateinit var logHelper: LogHelper
@@ -71,63 +67,61 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onCreate(savedInstanceState: Bundle?) {
-        settingsManager = SettingsManager(this)
-        setTheme(if (settingsManager.isDarkTheme) R.style.AppTheme_Dark else R.style.AppTheme_Light)
-        AppCompatDelegate.setDefaultNightMode(if (settingsManager.isDarkTheme) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO)
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         (application as? MyApplication)?.folderAdapter = folderAdapter
-        initViews()
+
+        settingsManager = SettingsManager(this)
+
         initControllers()
         setupRecyclerView()
         setupListeners()
         loadData()
 
-        btnStartService.isEnabled = true
-        btnStopService.isEnabled = false
+        binding.btnStartService.isEnabled = true
+        binding.btnStopService.isEnabled = false
     }
 
-    private fun initViews() {
-        drawerLayout = findViewById(R.id.drawerLayout)
-        navigationView = findViewById(R.id.navigationView)
-        btnStartService = findViewById(R.id.btnStartService)
-        btnStopService = findViewById(R.id.btnStopService)
-        btnClearLog = findViewById(R.id.btnClearLog)
-        tvLog = findViewById(R.id.tvLog)
-        scrollViewLog = findViewById(R.id.scrollViewLog)
-        recyclerViewFolders = findViewById(R.id.recyclerViewFolders)
-        fabAddFolder = findViewById(R.id.fabAddFolder)
-
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(false)
+    private fun setupToolbarAndDrawer() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        val toggle = ActionBarDrawerToggle(
+            this,
+            binding.drawerLayout,
+            binding.toolbar,
+            R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close
+        )
+        binding.drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
     }
 
     private fun initControllers() {
-        logHelper = LogHelper(this, tvLog, scrollViewLog)
+        logHelper = LogHelper(this, binding.tvLog, binding.scrollViewLog)
         serviceController = ServiceController(this, settingsManager)
         uiUpdater = UIUpdater(this, settingsManager)
         navigationHandler = NavigationHandler(this, this::showMediaTypeDialog, settingsManager, uiUpdater)
     }
 
     private fun setupRecyclerView() {
-        recyclerViewFolders.layoutManager = LinearLayoutManager(this)
-        recyclerViewFolders.adapter = folderAdapter
+        binding.recyclerViewFolders.layoutManager = LinearLayoutManager(this)
+        binding.recyclerViewFolders.adapter = folderAdapter
     }
 
     private fun setupListeners() {
-        navigationView.setNavigationItemSelectedListener { menuItem ->
+        setupToolbarAndDrawer()
+        binding.navigationView.setNavigationItemSelectedListener { menuItem ->
             navigationHandler.handleNavigationItemSelected(menuItem)
-            drawerLayout.closeDrawer(GravityCompat.END)
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
             true
         }
 
-        fabAddFolder.setOnClickListener { showAddFolderDialog() }
-        btnClearLog.setOnClickListener {
-            logHelper.clearLog()
-        }
+        binding.btnAddFolderIconButton.setOnClickListener { showAddFolderDialog() }
+        binding.btnClearLogIconButton.setOnClickListener { logHelper.clearLog() }
+
         setupButtonListeners()
         setupAdapterListeners()
 
@@ -153,8 +147,8 @@ class MainActivity : AppCompatActivity() {
                     saveFolders()
                     logHelper.log("Папка '$removedFolderName' удалена.")
                     serviceController.stopService()
-                    btnStartService.isEnabled = true
-                    btnStopService.isEnabled = false
+                    binding.btnStartService.isEnabled = true
+                    binding.btnStopService.isEnabled = false
                 }
             }
         })
@@ -177,8 +171,8 @@ class MainActivity : AppCompatActivity() {
                 resetSentFilesCacheForFolder(folder)
                 logHelper.log("Кэш для папки \"${folder.name}\" очищен.")
                 serviceController.stopService()
-                btnStartService.isEnabled = true
-                btnStopService.isEnabled = false
+                binding.btnStartService.isEnabled = true
+                binding.btnStopService.isEnabled = false
             }
             .setNegativeButton("Отмена", null)
             .show()
@@ -237,7 +231,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, IntentFilter("com.example.photouploaderapp.UPLOAD_LOG"))
-        checkPersistedPermissions()
+        //checkPersistedPermissions()
     }
 
     override fun onPause() {
@@ -246,15 +240,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.menu_settings) {
-            drawerLayout.openDrawer(GravityCompat.END)
-            return true
-        }
         return super.onOptionsItemSelected(item)
     }
 
@@ -290,29 +279,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtonListeners() {
-        btnStartService.setOnClickListener {
+        binding.btnStartService.setOnClickListener {
             val foldersToSync = folders.filter { it.isSyncing }
             if (foldersToSync.isNotEmpty()) {
                 serviceController.startService(foldersToSync)
-                btnStartService.isEnabled = false
-                btnStopService.isEnabled = true
+                binding.btnStartService.isEnabled = false
+                binding.btnStopService.isEnabled = true
             } else {
-                logHelper.log(getString(R.string.no_folders_for_sync))
+                logHelper.log("Нет папок, отмеченных для синхронизации.")
             }
         }
-        btnStopService.setOnClickListener {
+
+        binding.btnStopService.setOnClickListener {
             serviceController.stopService()
-            btnStartService.isEnabled = true
-            btnStopService.isEnabled = false
+            binding.btnStartService.isEnabled = true
+            binding.btnStopService.isEnabled = false
         }
     }
 
     fun toggleTheme() {
-        settingsManager.isDarkTheme = !settingsManager.isDarkTheme
-        recreate()
+        showToast("Тема теперь переключается в настройках системы")
     }
 
     internal fun showMediaTypeDialog() {
+        showToast("Логика выбора типа медиа")
     }
 
     fun showToast(message: String) {

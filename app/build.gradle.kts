@@ -29,6 +29,9 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    buildFeatures {
+        viewBinding = true
+    }
 }
 
 dependencies {
@@ -38,7 +41,7 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.8.2")
 
     // UI компоненты
-    implementation("com.google.android.material:material:1.11.0")
+    implementation("com.google.android.material:material:1.13.0-alpha04")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.drawerlayout:drawerlayout:1.2.0")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
