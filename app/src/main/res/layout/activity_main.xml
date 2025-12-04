@@ -35,11 +35,22 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
+                <TextView
+                    android:id="@+id/tvAppVersion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginBottom="8dp"
+                    android:textAppearance="?attr/textAppearanceCaption"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="Version 1.0" />
+
                 <LinearLayout
                     android:id="@+id/bottom_panel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentBottom="true"
+                    android:layout_above="@id/tvAppVersion"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
@@ -48,39 +59,25 @@
                     android:paddingBottom="8dp">
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnStartService"
-                        style="?attr/materialButtonOutlinedStyle"
-                        android:layout_width="152dp"
+                        android:id="@+id/btnToggleService"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="@string/start_service" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnStopService"
-                        android:layout_width="152dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="@string/stop_service" />
-
                     <Space
-                        android:layout_width="0dp"
-                        android:layout_height="0dp"
-                        android:layout_weight="1" />
+                        android:layout_width="16dp"
+                        android:layout_height="0dp" />
 
-                    <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="match_parent"
-                        android:minHeight="48dp">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnClearLogIconButton"
-                            style="@style/Widget.Material3.Button.IconButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:contentDescription="@string/clear_log"
-                            app:icon="@drawable/ic_check_gray"
-                            app:iconTint="?attr/colorOnSurfaceVariant" />
-                    </FrameLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnClearLogIconButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/clear_log"
+                        android:contentDescription="@string/clear_log"
+                        app:icon="@drawable/ic_check_gray"
+                        app:iconTint="?attr/colorOnSurfaceVariant" />
 
                 </LinearLayout>
 
@@ -111,28 +108,31 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
-
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
                     android:id="@+id/btnAddFolderIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_above="@id/log_card"
                     android:layout_alignParentEnd="true"
-                    android:layout_marginEnd="18dp"
-                    android:layout_marginBottom="11dp"
-                    android:contentDescription="@string/add_folder"
-                    app:srcCompat="@drawable/ic_add"
-                    app:tint="?attr/colorPrimary" />
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/add_folder_fab"
+                    app:icon="@drawable/ic_add"
+                    app:iconTint="?attr/colorOnPrimaryContainer"
+                    app:backgroundTint="?attr/colorPrimaryContainer"
+                    android:textColor="?attr/colorOnPrimaryContainer"
+                    />
 
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/folders_container"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_above="@id/btnAddFolderIconButton"
+                    android:layout_alignParentTop="true"
                     android:layout_marginStart="16dp"
                     android:layout_marginTop="8dp"
                     android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="7dp"
+                    android:layout_marginBottom="8dp"
                     app:cardBackgroundColor="?attr/colorSurface"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
@@ -159,6 +159,5 @@
             app:menu="@menu/drawer_menu" />
 
     </androidx.drawerlayout.widget.DrawerLayout>
-
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

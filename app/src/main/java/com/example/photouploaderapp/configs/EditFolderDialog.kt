@@ -1,6 +1,7 @@
 package com.example.photouploaderapp.configs
 
 import android.app.Dialog
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -17,12 +18,20 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class EditFolderDialog(
     private val settingsManager: SettingsManager,
-    private val folder: Folder,
-    private val listener: EditFolderListener
+    private val folder: Folder
 ) : DialogFragment() {
 
     interface EditFolderListener {
         fun onFolderEdited(folder: Folder)
+    }
+    private lateinit var listener: EditFolderListener
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        try {
+            listener = context as EditFolderListener
+        } catch (e: ClassCastException) {
+            throw ClassCastException("$context must implement EditFolderListener")
+        }
     }
 
     private var _binding: DialogAddFolderBinding? = null

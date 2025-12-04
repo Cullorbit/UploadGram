@@ -30,7 +30,7 @@
     <string name="save">Save</string>
     <string name="selected">Selected</string>
     <string name="not_selected">Not selected</string>
-    <string name="folder_details">Topic: %1$s, Type: %2$s, Folder: %3$s</string>
+    <string name="folder_details">Topic: %1$s, Type: %2$s</string>
     <string name="set_bot_token">Set Bot Token</string>
     <string name="enter_bot_token">Enter Bot Token</string>
     <string name="set_chat_id">Set Chat ID</string>
@@ -69,4 +69,33 @@
     <string name="reset_app_settings">Reset app settings</string>
     <string name="scanning_and_enqueuing">Scanning folders and enqueuing tasks...</string>
     <string name="no_folders_for_sync">No folders selected for synchronization.</string>
+    <string name="add_folder_fab">Add folder</string>
+    <string name="reset_cache">Reset Cache</string>
+    <string name="delete">Delete</string>
+    <string name="reset_cache_title">Reset Cache</string>
+    <string name="reset_cache_message">Are you sure you want to reset the sent files cache for the folder \"%1$s\"? The app will forget which files have been sent and will try to send them all again.</string>
+    <string name="reset_cache_confirm">Yes, Reset</string>
+    <string name="cache_cleared_for_folder">Cache cleared for folder \"%1$s\".</string>
+    <string name="folder_deleted">Folder \'%1$s\' has been deleted.</string>
+    <string name="service_stopped_due_to_cache_reset">Service stopped due to cache reset.</string>
+    <string name="new_folder_added">New folder added: \'%1$s\'</string>
+    <string name="initial_scan_started">Initial folder scan started...</string>
+    <string name="service_configured_next_check">Service configured. Next check in %1$d min.</string>
+    <string name="no_new_files_found">No new files found.</string>
+    <string name="scan_periodic_check">Periodic folder check...</string>
+    <string name="scan_initial_check">Initial folder check...</string>
+    <string name="scan_found_files">Found %1$d new files. Tasks have been enqueued.</string>
+    <plurals name="time_unit_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="time_unit_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <string name="error_folder_access">Error: no access to folder \'%1$s\'. Try selecting it again.</string>
+    <string name="error_critical_scan">Critical error while scanning folder \'%1$s\': %2$s</string>
+    <string name="system_log_name">SYSTEM</string>
+    <string name="log_skipping_hidden_file">Skipping hidden file: %1$s</string>
+    <string name="manual">User Guide</string>
 </resources>

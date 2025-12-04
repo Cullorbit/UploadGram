@@ -6,7 +6,7 @@
     <string name="start_service">Запустить</string>
     <string name="stop_service">Остановить</string>
     <string name="log_title">Журнал событий</string>
-    <string name="clear_log">Очистить</string>
+    <string name="clear_log">Очистить лог</string>
     <string name="add_folder">Добавить папку</string>
 
     <string name="settings">Основные настройки</string>
@@ -62,7 +62,6 @@
         <item>@string/only_photo</item>
         <item>@string/only_video</item>
     </string-array>
-
     <string name="log_cleared">Журнал очищен</string>
     <string name="service_stopped">Сервис остановлен</string>
     <string name="no_internet_connection">Отсутствует интернет-соединение.</string>
@@ -73,5 +72,43 @@
     <string name="error_sending_file_queued">Ошибка отправки. Файл возвращен в очередь: %1$s</string>
     <string name="scanning_and_enqueuing">Сканирование папок и постановка задач в очередь...</string>
     <string name="folder_changes_detected">Обнаружены изменения в папке. Сервис остановлен.</string>
+    <string name="add_folder_fab">Добавить папку</string>
+    <string name="reset_cache">Сбросить кэш</string>
+    <string name="delete">Удалить</string>
+    <string name="reset_cache_title">Сброс кэша</string>
+    <string name="reset_cache_message">Вы уверены, что хотите сбросить кэш отправленных файлов для
+        папки \"%1$s\"? Приложение забудет, какие файлы уже были отправлены, и попытается отправить
+        их все заново.
+    </string>
+    <string name="reset_cache_confirm">Да, сбросить</string>
+    <string name="cache_cleared_for_folder">Кэш для папки \"%1$s\" очищен.</string>
+    <string name="folder_deleted">Папка \'%1$s\' удалена.</string>
+    <string name="service_stopped_due_to_cache_reset">Сервис остановлен из-за сброса кэша.</string>
+    <string name="new_folder_added">Добавлена новая папка: \'%1$s\'</string>
+    <string name="initial_scan_started">Запущена первичная проверка папок...</string>
+    <string name="service_configured_next_check">Сервис настроен. Следующая проверка будет через %1$d мин.</string>
+    <string name="no_new_files_found">Новых файлов не найдено.</string>
+    <string name="scan_periodic_check">Периодическая проверка папок...</string>
+    <string name="scan_initial_check">Первичная проверка папок...</string>
+    <string name="scan_found_files">Найдено %1$d новых файлов. Задачи поставлены в очередь.</string>
+    <plurals name="time_unit_minutes">
+        <item quantity="one">%d минута</item>
+        <item quantity="few">%d минуты</item>
+        <item quantity="many">%d минут</item>
+        <item quantity="other">%d минут</item>
+    </plurals>
+    <plurals name="time_unit_hours">
+        <item quantity="one">%d час</item>
+        <item quantity="few">%d часа</item>
+        <item quantity="many">%d часов</item>
+        <item quantity="other">%d часов</item>
+    </plurals>
+    <string name="error_folder_access">Ошибка: нет доступа к папке \'%1$s\'. Попробуйте выбрать ее заново.</string>
+    <string name="error_critical_scan">Критическая ошибка при сканировании папки \'%1$s\': %2$s</string>
+    <string name="system_log_name">СИСТЕМА</string>
+    <string name="log_skipping_hidden_file">Пропускаю скрытый файл: %1$s</string>
+    <string name="manual">Руководство</string>
+
+
 
 </resources>

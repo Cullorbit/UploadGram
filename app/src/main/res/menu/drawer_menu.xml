@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" tools:showIn="navigation_view">
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
     <group android:id="@+id/group_settings" android:checkableBehavior="none">
         <item
             android:id="@+id/header_main_settings"
@@ -35,10 +37,20 @@
         </item>
     </group>
 
-    <group android:id="@+id/group_other" android:checkableBehavior="none">
+    <group android:id="@+id/group_help" android:checkableBehavior="none">
         <item
-            android:id="@+id/menu_reset_settings"
-            android:icon="@drawable/ic_reset"
-            android:title="@string/reset_app_settings" />
+            android:id="@+id/menu_manual"
+            android:icon="@drawable/ic_manual"
+            android:title="@string/manual" />
     </group>
+
+    <item android:title="">
+        <menu>
+            <item
+                android:id="@+id/menu_reset_settings"
+                android:icon="@drawable/ic_reset"
+                android:title="@string/reset_app_settings" />
+        </menu>
+    </item>
+
 </menu>

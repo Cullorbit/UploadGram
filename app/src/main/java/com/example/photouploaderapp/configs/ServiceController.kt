@@ -36,7 +36,7 @@ class ServiceController(private val context: Context, private val settingsManage
 
         val immediateScanRequest = OneTimeWorkRequestBuilder<ScanWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(requiredNetwork).build())
-            .setInputData(workDataOf("is_periodic" to false)) // Помечаем как НЕ периодическую
+            .setInputData(workDataOf("is_periodic" to false))
             .addTag("immediate_scan_work")
             .build()
 
@@ -46,11 +46,16 @@ class ServiceController(private val context: Context, private val settingsManage
             immediateScanRequest
         )
 
-        sendLogToUI("Запущена первичная проверка папок...")
+        sendLogToUI(context.getString(R.string.initial_scan_started))
+        logNextSyncTime(requiredNetwork)
     }
 
     fun scanFolders(folders: List<Folder>, isPeriodic: Boolean) {
-        val message = if (isPeriodic) "Периодическая проверка папок..." else "Первичная проверка папок..."
+        val message = if (isPeriodic) {
+            context.getString(R.string.scan_periodic_check)
+        } else {
+            context.getString(R.string.scan_initial_check)
+        }
         if (isPeriodic) {
             sendLogToUI(message)
         }
@@ -64,17 +69,38 @@ class ServiceController(private val context: Context, private val settingsManage
         }
 
         if (allUploadRequests.isEmpty()) {
-            sendLogToUI("Новых файлов не найдено.")
+            sendLogToUI(context.getString(R.string.no_new_files_found))
         } else {
             workManager.beginUniqueWork("FileUploadChain", ExistingWorkPolicy.REPLACE, allUploadRequests.first())
                 .then(allUploadRequests.drop(1))
                 .enqueue()
-            sendLogToUI("Найдено ${allUploadRequests.size} новых файлов. Задачи поставлены в очередь.")
+            sendLogToUI(context.getString(R.string.scan_found_files, allUploadRequests.size))
         }
 
-        if (!isPeriodic) {
-            setupPeriodicScan(networkType)
+        if (isPeriodic) {
+            //setupPeriodicScan(networkType)
         }
+    }
+
+    private fun formatInterval(minutes: Long): String {
+        return if (minutes < 60) {
+            val quantity = minutes.toInt()
+            context.resources.getQuantityString(R.plurals.time_unit_minutes, quantity, quantity)
+        } else {
+            val hours = (minutes / 60).toInt()
+            context.resources.getQuantityString(R.plurals.time_unit_hours, hours, hours)
+        }
+    }
+
+    private fun logNextSyncTime(networkType: NetworkType) {
+        var intervalMillis = settingsManager.syncInterval
+        if (intervalMillis < TimeUnit.MINUTES.toMillis(15)) {
+            intervalMillis = TimeUnit.MINUTES.toMillis(15)
+        }
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(intervalMillis)
+        val unit = getIntervalUnit(minutes)
+        val displayValue = if (minutes >= 60) minutes / 60 else minutes
+        sendLogToUI(context.getString(R.string.service_configured_next_check, minutes))
     }
 
     private fun setupPeriodicScan(requiredNetwork: NetworkType) {
@@ -83,6 +109,7 @@ class ServiceController(private val context: Context, private val settingsManage
             intervalMillis = TimeUnit.MINUTES.toMillis(15)
         }
         val intervalToShow = TimeUnit.MILLISECONDS.toMinutes(intervalMillis)
+        val intervalText = formatInterval(intervalToShow)
         val intervalUnitToShow = getIntervalUnit(intervalToShow)
         val displayValue = if (intervalToShow >= 60) intervalToShow / 60 else intervalToShow
 
@@ -98,7 +125,7 @@ class ServiceController(private val context: Context, private val settingsManage
             ExistingPeriodicWorkPolicy.REPLACE,
             periodicScanRequest
         )
-        sendLogToUI("Сервис настроен. Следующая проверка будет через $displayValue $intervalUnitToShow.")
+        sendLogToUI(context.getString(R.string.service_configured_next_check, intervalToShow))
     }
 
     private fun getIntervalUnit(minutes: Long): String {
@@ -119,12 +146,18 @@ class ServiceController(private val context: Context, private val settingsManage
             val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
 
             if (documentFolder == null || !documentFolder.canRead()) {
-                sendLogToUI("Ошибка: нет доступа к папке '${folder.name}'. Попробуйте выбрать ее заново.", "СИСТЕМА")
+                sendLogToUI(context.getString(R.string.error_folder_access, folder.name), context.getString(R.string.system_log_name))
                 return emptyList()
             }
 
             documentFolder.listFiles().forEach { docFile ->
                 val fileName = docFile.name ?: return@forEach
+
+                if (fileName.startsWith(".")) {
+                    Log.d(TAG, context.getString(R.string.log_skipping_hidden_file, fileName))
+                    return@forEach
+                }
+
                 val uniqueFileId = docFile.uri.toString()
 
                 if (docFile.isFile && !sentFilesPrefs.contains(uniqueFileId) && isValidMedia(docFile, folder.mediaType)) {
@@ -149,12 +182,12 @@ class ServiceController(private val context: Context, private val settingsManage
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error scanning folder ${folder.name}", e)
-            sendLogToUI("Критическая ошибка при сканировании папки '${folder.name}': ${e.message}", "СИСТЕМА")
+            sendLogToUI(context.getString(R.string.error_critical_scan, folder.name, e.message), context.getString(R.string.system_log_name))
         }
         return requests
     }
 
-    private fun sendLogToUI(message: String, folderName: String = "СИСТЕМА") {
+    private fun sendLogToUI(message: String, folderName: String = context.getString(R.string.system_log_name)) {
         val intent = android.content.Intent("com.example.photouploaderapp.UPLOAD_LOG").apply {
             putExtra("log_message", message)
             putExtra("folder_name", folderName)
@@ -183,5 +216,8 @@ class ServiceController(private val context: Context, private val settingsManage
         workManager.cancelUniqueWork("ImmediateScan")
         workManager.cancelUniqueWork("FileUploadChain")
         sendLogToUI(context.getString(R.string.service_stopped))
+    }
+    fun cancelPeriodicScan() {
+        workManager.cancelUniqueWork("FolderScanWork")
     }
 }

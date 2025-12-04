@@ -1,6 +1,7 @@
 package com.example.photouploaderapp.configs
 
 import android.app.Dialog
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -16,17 +17,25 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class AddFolderDialog(
     private val settingsManager: SettingsManager,
-    private val listener: AddFolderListener
 ) : DialogFragment() {
 
-    interface AddFolderListener {
-        fun onFolderAdded(folder: Folder)
+    interface AddFolderListener {fun onFolderAdded(folder: Folder)
     }
+    private lateinit var listener: AddFolderListener
     private var _binding: DialogAddFolderBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var folderPickerLauncher: ActivityResultLauncher<Uri?>
     private var selectedFolderPath: Uri? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        try {
+            listener = context as AddFolderListener
+        } catch (e: ClassCastException) {
+            throw ClassCastException("$context must implement AddFolderListener")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

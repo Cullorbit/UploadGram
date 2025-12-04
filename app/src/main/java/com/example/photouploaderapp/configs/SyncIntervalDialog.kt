@@ -29,6 +29,7 @@ class SyncIntervalDialog(private val settingsManager: SettingsManager) : DialogF
                 (activity as? MainActivity)?.let {
                     val uiUpdater = UIUpdater(it, settingsManager)
                     uiUpdater.updateSettingsDisplay()
+                    it.stopServiceIfNeeded()
                 }
             }
             .setPositiveButton(getString(R.string.save)) { dialog, _ ->

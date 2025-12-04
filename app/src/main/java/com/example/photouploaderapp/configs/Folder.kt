@@ -1,6 +1,9 @@
 package com.example.photouploaderapp.configs
 
+import java.util.UUID
+
 data class Folder(
+    val id: String = UUID.randomUUID().toString(),
     val name: String,
     val topic: String,
     val mediaType: String,

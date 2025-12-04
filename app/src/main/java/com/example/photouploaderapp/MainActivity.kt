@@ -39,7 +39,10 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlin.io.path.exists
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(),
+    AddFolderDialog.AddFolderListener,
+    EditFolderDialog.EditFolderListener {
+    private var isServiceRunning = false
     lateinit var binding: ActivityMainBinding
     private val folders = mutableListOf<Folder>()
     private val folderAdapter = FolderAdapter(folders)
@@ -79,10 +82,11 @@ class MainActivity : AppCompatActivity() {
         initControllers()
         setupRecyclerView()
         setupListeners()
+        setupAppVersion()
         loadData()
+        serviceController.cancelPeriodicScan()
 
-        binding.btnStartService.isEnabled = true
-        binding.btnStopService.isEnabled = false
+        updateServiceState(false)
     }
 
     private fun setupToolbarAndDrawer() {
@@ -97,6 +101,27 @@ class MainActivity : AppCompatActivity() {
         )
         binding.drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
+    }
+
+    override fun onFolderAdded(folder: Folder) {
+        folders.add(folder)
+        folderAdapter.notifyDataSetChanged()
+        saveFolders()
+        logHelper.log(getString(R.string.new_folder_added, folder.name))
+        stopServiceIfNeeded()
+    }
+
+    override fun onFolderEdited(editedFolder: Folder) {
+        val position = folders.indexOfFirst { it.id == editedFolder.id }
+        if (position != -1) {
+            val hasChanged = folders[position] != editedFolder
+            folders[position] = editedFolder
+            folderAdapter.notifyItemChanged(position)
+            saveFolders()
+            if (hasChanged) {
+                stopServiceIfNeeded()
+            }
+        }
     }
 
     private fun initControllers() {
@@ -130,6 +155,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+    private fun setupAppVersion() {
+        try {
+            val packageInfo = packageManager.getPackageInfo(packageName, 0)
+            val versionName = packageInfo.versionName
+            binding.tvAppVersion.text = "UploadGram Version: $versionName"
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Couldn't get app version", e)
+            binding.tvAppVersion.text = ""
+        }
+    }
 
     private fun setupAdapterListeners() {
         folderAdapter.setOnItemClickListener(object : FolderAdapter.OnItemClickListener {
@@ -145,10 +180,11 @@ class MainActivity : AppCompatActivity() {
                     folders.removeAt(position)
                     folderAdapter.notifyItemRemoved(position)
                     saveFolders()
-                    logHelper.log("Папка '$removedFolderName' удалена.")
-                    serviceController.stopService()
-                    binding.btnStartService.isEnabled = true
-                    binding.btnStopService.isEnabled = false
+                    logHelper.log(getString(R.string.folder_deleted, removedFolderName))
+                    if (isServiceRunning) {
+                        serviceController.stopService()
+                        updateServiceState(false)
+                    }
                 }
             }
         })
@@ -161,20 +197,35 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+        folderAdapter.setOnSyncToggleListener(object : FolderAdapter.OnSyncToggleListener {
+            override fun onSyncToggle(position: Int, isChecked: Boolean) {
+                if (position in folders.indices) {
+                    folders[position].isSyncing = isChecked
+                    saveFolders()
+                    if (isServiceRunning) {
+                        serviceController.stopService()
+                        updateServiceState(false)
+                        logHelper.log(getString(R.string.folder_changes_detected))
+                    }
+                }
+            }
+        })
     }
 
     private fun showResetCacheConfirmationDialog(folder: Folder) {
         AlertDialog.Builder(this)
-            .setTitle("Сброс кэша")
-            .setMessage("Вы уверены, что хотите сбросить кэш отправленных файлов для папки \"${folder.name}\"? Приложение забудет, какие файлы уже были отправлены, и попытается отправить их все заново.")
-            .setPositiveButton("Да, сбросить") { _, _ ->
+            .setTitle(getString(R.string.reset_cache_title))
+            .setMessage(getString(R.string.reset_cache_message, folder.name))
+            .setPositiveButton(getString(R.string.reset_cache_confirm)) { _, _ ->
                 resetSentFilesCacheForFolder(folder)
-                logHelper.log("Кэш для папки \"${folder.name}\" очищен.")
-                serviceController.stopService()
-                binding.btnStartService.isEnabled = true
-                binding.btnStopService.isEnabled = false
+                logHelper.log(getString(R.string.cache_cleared_for_folder, folder.name))
+                if (isServiceRunning) {
+                    serviceController.stopService()
+                    updateServiceState(false)
+                    logHelper.log(getString(R.string.service_stopped_due_to_cache_reset))
+                }
             }
-            .setNegativeButton("Отмена", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -252,48 +303,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAddFolderDialog() {
-        AddFolderDialog(settingsManager, object : AddFolderDialog.AddFolderListener {
-            @SuppressLint("NotifyDataSetChanged")
-            override fun onFolderAdded(folder: Folder) {
-                folders.add(folder)
-                folderAdapter.notifyDataSetChanged()
-                saveFolders()
-                logHelper.log("Добавлена новая папка: '${folder.name}'")
-            }
-        }).show(supportFragmentManager, "AddFolderDialog")
+        AddFolderDialog(settingsManager).show(supportFragmentManager, "AddFolderDialog")
     }
 
     private fun showEditFolderDialog(position: Int) {
         val folder = folders[position]
-        EditFolderDialog(settingsManager, folder, object : EditFolderDialog.EditFolderListener {
-            override fun onFolderEdited(editedFolder: Folder) {
-                if (folder != editedFolder) {
-                    serviceController.stopService()
-                    logHelper.log(getString(R.string.folder_changes_detected))
-                }
-                folders[position] = editedFolder
-                folderAdapter.notifyItemChanged(position)
-                saveFolders()
-            }
-        }).show(supportFragmentManager, "EditFolderDialog")
+        EditFolderDialog(settingsManager, folder).show(supportFragmentManager, "EditFolderDialog")
     }
 
     private fun setupButtonListeners() {
-        binding.btnStartService.setOnClickListener {
-            val foldersToSync = folders.filter { it.isSyncing }
-            if (foldersToSync.isNotEmpty()) {
-                serviceController.startService(foldersToSync)
-                binding.btnStartService.isEnabled = false
-                binding.btnStopService.isEnabled = true
+        binding.btnToggleService.setOnClickListener {
+            if (isServiceRunning) {
+                serviceController.stopService()
+                updateServiceState(false)
             } else {
-                logHelper.log("Нет папок, отмеченных для синхронизации.")
+                // Если сервис не запущен, запускаем
+                val foldersToSync = folders.filter { it.isSyncing }
+                if (foldersToSync.isNotEmpty()) {
+                    serviceController.startService(foldersToSync)
+                    updateServiceState(true)
+                } else {
+                    logHelper.log("Нет папок, отмеченных для синхронизации.")
+                }
             }
         }
-
-        binding.btnStopService.setOnClickListener {
-            serviceController.stopService()
-            binding.btnStartService.isEnabled = true
-            binding.btnStopService.isEnabled = false
+    }
+    private fun updateServiceState(isRunning: Boolean) {
+        isServiceRunning = isRunning
+        if (isRunning) {
+            binding.btnToggleService.text = getString(R.string.stop_service)
+        } else {
+            binding.btnToggleService.text = getString(R.string.start_service)
         }
     }
 
@@ -340,6 +380,14 @@ class MainActivity : AppCompatActivity() {
                 logHelper.log("ВНИМАНИЕ: Потерян доступ к папке '${folder.name}'. Пожалуйста, выберите ее заново в настройках папки.")
                 permissionsLost = true
             }
+        }
+    }
+
+    fun stopServiceIfNeeded() {
+        if (isServiceRunning) {
+            serviceController.stopService()
+            updateServiceState(false)
+            logHelper.log("Настройки были изменены. Сервис остановлен.")
         }
     }
 

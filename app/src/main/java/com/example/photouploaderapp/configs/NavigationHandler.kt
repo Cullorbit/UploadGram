@@ -1,5 +1,7 @@
 package com.example.photouploaderapp.configs
 
+import android.content.Intent
+import android.net.Uri
 import android.view.MenuItem
 import android.widget.EditText
 import com.example.photouploaderapp.MainActivity
@@ -46,6 +48,10 @@ class NavigationHandler(
                 activity.showSyncIntervalDialog()
                 true
             }
+            R.id.menu_manual -> {
+                openManual()
+                true
+            }
             else -> false
         }
     }
@@ -70,17 +76,13 @@ class NavigationHandler(
 
         builder.setView(textInputLayout)
 
-
         builder.setPositiveButton(activity.getString(R.string.save)) { dialog, _ ->
             val inputText = inputField.text.toString().trim()
-            if (inputText.isNotEmpty()) {
+            if (inputText != (currentValue ?: "")) {
                 settingsManager.saveSetting(key, inputText)
                 uiUpdater.updateSettingsDisplay()
                 activity.showToast(activity.getString(R.string.setting_saved))
-            } else {
-                settingsManager.saveSetting(key, "")
-                uiUpdater.updateSettingsDisplay()
-                activity.showToast(activity.getString(R.string.setting_saved))
+                activity.stopServiceIfNeeded()
             }
             dialog.dismiss()
         }
@@ -98,6 +100,7 @@ class NavigationHandler(
                 settingsManager.clearSettings()
                 uiUpdater.updateSettingsDisplay()
                 activity.showToast(activity.getString(R.string.settings_reset))
+                activity.stopServiceIfNeeded()
                 dialog.dismiss()
             }
             .setNegativeButton(activity.getString(R.string.no)) { dialog, _ ->
@@ -115,16 +118,23 @@ class NavigationHandler(
         MaterialAlertDialogBuilder(activity)
             .setTitle(activity.getString(R.string.synchronization))
             .setSingleChoiceItems(options, checkedItem) { dialog, which ->
-                when (which) {
-                    0 -> settingsManager.syncOption = "wifi_only"
-                    else -> settingsManager.syncOption = "wifi_and_mobile"
+                val newOption = if (which == 0) "wifi_only" else "wifi_and_mobile"
+                if (settingsManager.syncOption != newOption) {
+                    settingsManager.syncOption = newOption
+                    uiUpdater.updateSettingsDisplay()
+                    activity.stopServiceIfNeeded()
                 }
-                uiUpdater.updateSettingsDisplay()
                 dialog.dismiss()
             }
             .setNegativeButton(activity.getString(R.string.cancel)) { dialog, _ ->
                 dialog.cancel()
             }
             .show()
+    }
+    private fun openManual() {
+        val url = "https://github.com/Cullorbit/UploadGram/blob/master/USAGE.md"
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.data = Uri.parse(url)
+        activity.startActivity(intent)
     }
 }
