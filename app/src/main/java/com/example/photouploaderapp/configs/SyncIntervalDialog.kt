@@ -1,8 +1,6 @@
-package com.example.photouploaderapp.configsimport
+package com.example.photouploaderapp.configs
 
 import android.app.Dialog
-import com.example.photouploaderapp.configs.SettingsManager
-import com.example.photouploaderapp.configs.UIUpdater
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 import com.example.photouploaderapp.MainActivity
@@ -25,11 +23,12 @@ class SyncIntervalDialog(private val settingsManager: SettingsManager) : DialogF
             .setTitle(getString(R.string.sync_interval))
             .setSingleChoiceItems(intervals, currentInterval) { _, which ->
                 val interval = getIntervalInMillis(which)
-                settingsManager.syncInterval = interval
-                (activity as? MainActivity)?.let {
-                    val uiUpdater = UIUpdater(it, settingsManager)
-                    uiUpdater.updateSettingsDisplay()
-                    it.stopServiceIfNeeded()
+                if (settingsManager.syncInterval != interval) {
+                    settingsManager.syncInterval = interval
+                    (activity as? MainActivity)?.let {
+                        UIUpdater(it, settingsManager).updateSettingsDisplay()
+                        it.stopServiceIfNeeded()
+                    }
                 }
             }
             .setPositiveButton(getString(R.string.save)) { dialog, _ ->

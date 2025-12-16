@@ -11,6 +11,7 @@
         <item>All</item>
         <item>Photo</item>
         <item>Video</item>
+        <item>Audio</item>
     </string-array>
     <string-array name="log_filters">
         <item>All</item>
@@ -24,6 +25,7 @@
     <string name="no_internet_connection">No internet connection.</string>
     <string name="only_photo">Only photo</string>
     <string name="only_video">Only video</string>
+    <string name="only_audio">Only audio</string>
     <string name="cancel">Cancel</string>
     <string name="add_folder">Add folder</string>
     <string name="edit_folder">Edit folder</string>

@@ -1,5 +1,4 @@
-<resources>
-    <string name="app_name">UploadGram</string>
+<resources><string name="app_name">UploadGram</string>
     <string name="navigation_drawer_open">Открыть меню навигации</string>
     <string name="navigation_drawer_close">Закрыть меню навигации</string>
 
@@ -57,10 +56,12 @@
     <string name="all_media">Все</string>
     <string name="only_photo">Фото</string>
     <string name="only_video">Видео</string>
+    <string name="only_audio">Аудио</string>
     <string-array name="media_types">
         <item>@string/all_media</item>
         <item>@string/only_photo</item>
         <item>@string/only_video</item>
+        <item>@string/only_audio</item>
     </string-array>
     <string name="log_cleared">Журнал очищен</string>
     <string name="service_stopped">Сервис остановлен</string>
@@ -108,7 +109,4 @@
     <string name="system_log_name">СИСТЕМА</string>
     <string name="log_skipping_hidden_file">Пропускаю скрытый файл: %1$s</string>
     <string name="manual">Руководство</string>
-
-
-
 </resources>

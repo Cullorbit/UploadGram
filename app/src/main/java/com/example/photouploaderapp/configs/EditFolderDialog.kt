@@ -17,7 +17,7 @@ import com.example.photouploaderapp.databinding.DialogAddFolderBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class EditFolderDialog(
-    private val settingsManager: SettingsManager,
+    settingsManager: SettingsManager,
     private val folder: Folder
 ) : DialogFragment() {
 
@@ -99,7 +99,7 @@ class EditFolderDialog(
         binding.etFolderName.setText(folder.name)
         binding.etTopicNumber.setText(folder.topic)
         binding.etFolderPath.setText(folder.path)
-        binding.spinnerMediaType.setText(folder.mediaType, false) // false - чтобы не фильтровать список
+        binding.spinnerMediaType.setText(folder.mediaType, false)
     }
 
     override fun onDestroyView() {

@@ -9,8 +9,6 @@ import androidx.work.*
 import com.example.photouploaderapp.R
 import com.example.photouploaderapp.telegrambot.ScanWorker
 import com.example.photouploaderapp.telegrambot.UploadWorker
-import java.io.File
-import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 
 class ServiceController(private val context: Context, private val settingsManager: SettingsManager) {
@@ -47,7 +45,7 @@ class ServiceController(private val context: Context, private val settingsManage
         )
 
         sendLogToUI(context.getString(R.string.initial_scan_started))
-        logNextSyncTime(requiredNetwork)
+        logNextSyncTime()
     }
 
     fun scanFolders(folders: List<Folder>, isPeriodic: Boolean) {
@@ -76,66 +74,15 @@ class ServiceController(private val context: Context, private val settingsManage
                 .enqueue()
             sendLogToUI(context.getString(R.string.scan_found_files, allUploadRequests.size))
         }
-
-        if (isPeriodic) {
-            //setupPeriodicScan(networkType)
-        }
     }
 
-    private fun formatInterval(minutes: Long): String {
-        return if (minutes < 60) {
-            val quantity = minutes.toInt()
-            context.resources.getQuantityString(R.plurals.time_unit_minutes, quantity, quantity)
-        } else {
-            val hours = (minutes / 60).toInt()
-            context.resources.getQuantityString(R.plurals.time_unit_hours, hours, hours)
-        }
-    }
-
-    private fun logNextSyncTime(networkType: NetworkType) {
+    private fun logNextSyncTime() {
         var intervalMillis = settingsManager.syncInterval
         if (intervalMillis < TimeUnit.MINUTES.toMillis(15)) {
             intervalMillis = TimeUnit.MINUTES.toMillis(15)
         }
         val minutes = TimeUnit.MILLISECONDS.toMinutes(intervalMillis)
-        val unit = getIntervalUnit(minutes)
-        val displayValue = if (minutes >= 60) minutes / 60 else minutes
         sendLogToUI(context.getString(R.string.service_configured_next_check, minutes))
-    }
-
-    private fun setupPeriodicScan(requiredNetwork: NetworkType) {
-        var intervalMillis = settingsManager.syncInterval
-        if (intervalMillis < TimeUnit.MINUTES.toMillis(15)) {
-            intervalMillis = TimeUnit.MINUTES.toMillis(15)
-        }
-        val intervalToShow = TimeUnit.MILLISECONDS.toMinutes(intervalMillis)
-        val intervalText = formatInterval(intervalToShow)
-        val intervalUnitToShow = getIntervalUnit(intervalToShow)
-        val displayValue = if (intervalToShow >= 60) intervalToShow / 60 else intervalToShow
-
-        val constraints = Constraints.Builder().setRequiredNetworkType(requiredNetwork).build()
-        val periodicScanRequest = PeriodicWorkRequestBuilder<ScanWorker>(intervalMillis, TimeUnit.MILLISECONDS)
-            .setConstraints(constraints)
-            .setInputData(workDataOf("is_periodic" to true))
-            .addTag("periodic_scan_work")
-            .build()
-
-        workManager.enqueueUniquePeriodicWork(
-            "FolderScanWork",
-            ExistingPeriodicWorkPolicy.REPLACE,
-            periodicScanRequest
-        )
-        sendLogToUI(context.getString(R.string.service_configured_next_check, intervalToShow))
-    }
-
-    private fun getIntervalUnit(minutes: Long): String {
-        if (minutes < 60) return "минут"
-        val hours = minutes / 60
-        return when {
-            hours % 10 == 1L && hours % 100 != 11L -> "час"
-            hours % 10 in 2..4 && (hours % 100 < 10 || hours % 100 >= 20) -> "часа"
-            else -> "часов"
-        }
     }
 
     private fun createWorkRequestsForFolder(folder: Folder, networkType: NetworkType): List<OneTimeWorkRequest> {
@@ -199,13 +146,18 @@ class ServiceController(private val context: Context, private val settingsManage
         val fileName = file.name?.lowercase() ?: return false
         val isFilePhoto = listOf(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp").any { fileName.endsWith(it) }
         val isFileVideo = listOf(".mp4", ".mkv", ".webm", ".avi", ".mov", ".3gp", ".flv").any { fileName.endsWith(it) }
-        val photoTypeString = context.getString(R.string.only_photo).lowercase()
-        val videoTypeString = context.getString(R.string.only_video).lowercase()
-        val allTypeString = context.getString(R.string.all_media).lowercase()
-        return when (mediaType.lowercase()) {
+        val isFileAudio = listOf(".mp3", ".m4a", ".ogg", ".wav", ".flac").any { fileName.endsWith(it) }
+
+        val photoTypeString = context.getString(R.string.only_photo)
+        val videoTypeString = context.getString(R.string.only_video)
+        val audioTypeString = context.getString(R.string.only_audio)
+        val allTypeString = context.getString(R.string.all_media)
+
+        return when (mediaType) {
             photoTypeString -> isFilePhoto
             videoTypeString -> isFileVideo
-            allTypeString -> isFilePhoto || isFileVideo
+            audioTypeString -> isFileAudio
+            allTypeString -> isFilePhoto || isFileVideo || isFileAudio
             else -> false
         }
     }
@@ -217,6 +169,7 @@ class ServiceController(private val context: Context, private val settingsManage
         workManager.cancelUniqueWork("FileUploadChain")
         sendLogToUI(context.getString(R.string.service_stopped))
     }
+
     fun cancelPeriodicScan() {
         workManager.cancelUniqueWork("FolderScanWork")
     }

@@ -8,7 +8,6 @@ import com.example.photouploaderapp.databinding.FolderItemBinding
 
 class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Adapter<FolderAdapter.FolderViewHolder>() {
 
-    // ... интерфейсы слушателей ...
     interface OnItemClickListener {
         fun onItemClick(position: Int)
     }
@@ -29,7 +28,6 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
     private var deleteClickListener: OnDeleteClickListener? = null
     private var resetCacheClickListener: OnResetCacheClickListener? = null
     private var syncToggleListener: OnSyncToggleListener? = null
-    private lateinit var recyclerView: RecyclerView
 
     fun setOnItemClickListener(listener: OnItemClickListener) { this.itemClickListener = listener }
     fun setOnDeleteClickListener(listener: OnDeleteClickListener) { this.deleteClickListener = listener }
@@ -48,11 +46,6 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
     }
 
     override fun getItemCount() = folders.size
-
-    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
-        super.onAttachedToRecyclerView(recyclerView)
-        this.recyclerView = recyclerView
-    }
 
     inner class FolderViewHolder(private val binding: FolderItemBinding) : RecyclerView.ViewHolder(binding.root) {
 

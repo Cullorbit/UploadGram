@@ -9,7 +9,6 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.photouploaderapp.R
-import kotlinx.coroutines.delay
 import java.io.File
 import java.io.FileOutputStream
 
@@ -19,15 +18,12 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
     private val telegramApi = TelegramApi()
 
     override suspend fun doWork(): Result {
-        delay(3000)
-
         val botToken = inputData.getString("KEY_BOT_TOKEN") ?: return Result.failure()
         val chatId = inputData.getString("KEY_CHAT") ?: return Result.failure()
         val fileUriString = inputData.getString("KEY_FILE_URI") ?: return Result.failure()
         val originalFileName = inputData.getString("KEY_ORIGINAL_FILE_NAME") ?: return Result.failure()
         val topicId = inputData.getInt("KEY_TOPIC", -1).takeIf { it > 0 }
         val folderName = inputData.getString("KEY_FOLDER_NAME") ?: return Result.failure()
-        val mediaType = inputData.getString("KEY_MEDIA_TYPE") ?: return Result.failure()
 
         val cachedFile = createCacheFileFromUri(fileUriString.toUri(), originalFileName)
         if (cachedFile == null) {
@@ -38,8 +34,7 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
         sendLog("Отправляю файл: $originalFileName", folderName)
 
         val (isSuccess, errorMessage) = telegramApi.sendDocument(
-            botToken = botToken,
-            chatId = chatId,
+            botToken = botToken,chatId = chatId,
             topicId = topicId,
             file = cachedFile,
             fileName = originalFileName
@@ -53,7 +48,7 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
             markFileAsSent(context, fileUriString)
             return Result.success()
         } else {
-            Log.w(TAG, "Work FAILURE for $originalFileName. Reason: $errorMessage")
+            Log.w (TAG, "Work FAILURE for $originalFileName. Reason: $errorMessage")
             val errorText = errorMessage ?: context.getString(R.string.error_sending_file_queued, originalFileName)
             sendLog(errorText, folderName)
             return Result.retry()
@@ -61,33 +56,35 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
     }
 
     private fun createCacheFileFromUri(uri: Uri, fileName: String): File? {
-        return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val tempFile = File(context.cacheDir, "${System.currentTimeMillis()}-$fileName")
-            val outputStream = FileOutputStream(tempFile)
-            inputStream?.use { input ->
-                outputStream.use { output ->
-                    input.copyTo(output)
-                }
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri)
+        val tempFile = File(context.cacheDir, "${System.currentTimeMillis()}-$fileName")
+        val outputStream = FileOutputStream(tempFile)
+        inputStream?.use { input ->
+            outputStream.use { output ->
+                input.copyTo(output)
             }
-            tempFile
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to create cache file from URI", e)
-            null
         }
-    }
-
-    private fun sendLog(message: String, folderName: String) {
-        val intent = android.content.Intent("com.example.photouploaderapp.UPLOAD_LOG").apply {
-            putExtra("log_message", message)
-            putExtra("folder_name", folderName)
-        }
-        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
-    }
-
-    private fun markFileAsSent(context: Context, fileUri: String) {
-        val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
-        sentFilesPrefs.edit { putBoolean(fileUri, true) }
-        Log.d(TAG, "File marked as sent: $fileUri")
+        tempFile
+    } catch (e: Exception) {Log.e(TAG, "Failed to create cache file from URI", e)
+        null
     }
 }
+
+private fun sendLog(message: String, folderName: String) {
+    val intent = android.content.Intent("com.example.photouploaderapp.UPLOAD_LOG").apply {
+        putExtra("log_message", message)
+        putExtra("folder_name", folderName)
+    }
+    LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+}
+
+private fun markFileAsSent(context: Context, fileUri: String) {
+    val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
+    sentFilesPrefs.edit { putBoolean(fileUri, true) }
+    Log.d(TAG, "File marked as sent: $fileUri")
+}
+}
+
+
+

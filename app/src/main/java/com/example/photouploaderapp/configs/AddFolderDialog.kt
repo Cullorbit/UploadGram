@@ -19,7 +19,8 @@ class AddFolderDialog(
     private val settingsManager: SettingsManager,
 ) : DialogFragment() {
 
-    interface AddFolderListener {fun onFolderAdded(folder: Folder)
+    interface AddFolderListener {
+        fun onFolderAdded(folder: Folder)
     }
     private lateinit var listener: AddFolderListener
     private var _binding: DialogAddFolderBinding? = null
@@ -72,7 +73,6 @@ class AddFolderDialog(
                         path = selectedFolderPath.toString(),
                         isSyncing = true
                     )
-                    settingsManager.selectedMediaType = folder.mediaType
                     listener.onFolderAdded(folder)
                 }
             }

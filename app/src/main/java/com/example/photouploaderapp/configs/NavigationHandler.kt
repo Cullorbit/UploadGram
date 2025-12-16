@@ -11,7 +11,6 @@ import com.google.android.material.textfield.TextInputLayout
 
 class NavigationHandler(
     private val activity: MainActivity,
-    private val showMediaTypeDialog: () -> Unit,
     private val settingsManager: SettingsManager,
     private val uiUpdater: UIUpdater
 ) {
@@ -108,6 +107,7 @@ class NavigationHandler(
             }
             .show()
     }
+
     private fun showSyncOptionsDialog() {
         val options = arrayOf(activity.getString(R.string.wifi_only), activity.getString(R.string.wifi_and_mobile_data))
         val currentOption = settingsManager.syncOption
@@ -131,6 +131,7 @@ class NavigationHandler(
             }
             .show()
     }
+
     private fun openManual() {
         val url = "https://github.com/Cullorbit/UploadGram/blob/master/USAGE.md"
         val intent = Intent(Intent.ACTION_VIEW)

@@ -44,13 +44,10 @@
             android:title="@string/manual" />
     </group>
 
-    <item android:title="">
-        <menu>
-            <item
-                android:id="@+id/menu_reset_settings"
-                android:icon="@drawable/ic_reset"
-                android:title="@string/reset_app_settings" />
-        </menu>
-    </item>
-
+    <group android:id="@+id/reset_group" android:checkableBehavior="none">
+        <item
+            android:id="@+id/menu_reset_settings"
+            android:icon="@drawable/ic_reset"
+            android:title="@string/reset_app_settings" />
+    </group>
 </menu>

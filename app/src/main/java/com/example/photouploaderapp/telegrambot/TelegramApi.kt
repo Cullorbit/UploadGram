@@ -39,15 +39,26 @@ class TelegramApi {
 
             return suspendCancellableCoroutine { continuation ->
                 try {
-                    val baseUrl = "https://telegram-bot-api-latest-wuhf.onrender.com"
-                    val finalUrl = "$baseUrl/bot$botToken/sendDocument"
-                    Log.d("TelegramApi", "Uploading to custom server: $finalUrl")
+                    val fileExtension = fileName.substringAfterLast('.', "").lowercase()
+
+                    val (method, mediaKey, mediaType) = when {
+                        fileExtension in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> Triple("sendPhoto", "photo", "image/$fileExtension")
+                        fileExtension in listOf("mp4", "mkv", "webm", "avi", "mov", "3gp", "flv") -> Triple("sendVideo", "video", "video/$fileExtension")
+                        fileExtension in listOf("mp3", "m4a", "ogg", "wav", "flac") -> Triple("sendAudio", "audio", "audio/$fileExtension")
+                        else -> Triple("sendDocument", "document", "application/octet-stream")
+                    }
+
+                    val baseUrl = "https://api.telegram.org/bot$botToken"
+                    val finalUrl = "$baseUrl/$method"
+                    Log.d("TelegramApi", "Uploading to: $finalUrl")
 
                     val requestBody = MultipartBody.Builder()
                         .setType(MultipartBody.FORM)
                         .addFormDataPart("chat_id", chatId)
-                        .apply { topicId?.let { addFormDataPart("message_thread_id", it.toString()) } }
-                        .addFormDataPart("document", fileName, file.asRequestBody("application/octet-stream".toMediaTypeOrNull()))
+                        .apply {
+                            topicId?.let { addFormDataPart("message_thread_id", it.toString()) }
+                        }
+                        .addFormDataPart(mediaKey, fileName, file.asRequestBody(mediaType.toMediaTypeOrNull()))
                         .build()
 
                     val request = Request.Builder()

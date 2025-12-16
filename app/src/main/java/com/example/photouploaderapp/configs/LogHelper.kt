@@ -21,12 +21,8 @@ class LogHelper(
 
     fun log(message: String) {
         val currentLog = tvLog.text.toString()
-        val newLog = if (currentLog.isEmpty()) {
-            message
-        } else {
-            "$currentLog\n\n$message"
-        }
-        tvLog.text = newLog
+        val newLog = "$currentLog\n\n$message"
+        tvLog.text = newLog.trim()
         logPrefs.edit().putString("log_content", newLog).apply()
         scrollToBottom()
     }
