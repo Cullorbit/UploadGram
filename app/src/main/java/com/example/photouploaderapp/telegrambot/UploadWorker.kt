@@ -34,7 +34,8 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
         sendLog("Отправляю файл: $originalFileName", folderName)
 
         val (isSuccess, errorMessage) = telegramApi.sendDocument(
-            botToken = botToken,chatId = chatId,
+            botToken = botToken,
+            chatId = chatId,
             topicId = topicId,
             file = cachedFile,
             fileName = originalFileName
@@ -56,34 +57,35 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
     }
 
     private fun createCacheFileFromUri(uri: Uri, fileName: String): File? {
-    return try {
-        val inputStream = context.contentResolver.openInputStream(uri)
-        val tempFile = File(context.cacheDir, "${System.currentTimeMillis()}-$fileName")
-        val outputStream = FileOutputStream(tempFile)
-        inputStream?.use { input ->
-            outputStream.use { output ->
-                input.copyTo(output)
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val tempFile = File(context.cacheDir, "${System.currentTimeMillis()}-$fileName")
+            val outputStream = FileOutputStream(tempFile)
+            inputStream?.use { input ->
+                outputStream.use { output ->
+                    input.copyTo(output)
+                }
             }
+            tempFile
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create cache file from URI", e)
+            null
         }
-        tempFile
-    } catch (e: Exception) {Log.e(TAG, "Failed to create cache file from URI", e)
-        null
     }
-}
 
-private fun sendLog(message: String, folderName: String) {
-    val intent = android.content.Intent("com.example.photouploaderapp.UPLOAD_LOG").apply {
-        putExtra("log_message", message)
-        putExtra("folder_name", folderName)
+    private fun sendLog(message: String, folderName: String) {
+        val intent = android.content.Intent("com.example.photouploaderapp.UPLOAD_LOG").apply {
+            putExtra("log_message", message)
+            putExtra("folder_name", folderName)
+        }
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
     }
-    LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
-}
 
-private fun markFileAsSent(context: Context, fileUri: String) {
-    val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
-    sentFilesPrefs.edit { putBoolean(fileUri, true) }
-    Log.d(TAG, "File marked as sent: $fileUri")
-}
+    private fun markFileAsSent(context: Context, fileUri: String) {
+        val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
+        sentFilesPrefs.edit { putBoolean(fileUri, true) }
+        Log.d(TAG, "File marked as sent: $fileUri")
+    }
 }
 
 
