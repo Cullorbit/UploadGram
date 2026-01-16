@@ -3,7 +3,6 @@ package com.example.photouploaderapp.telegrambot
 import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -16,15 +15,17 @@ import kotlin.coroutines.suspendCoroutine
 class TelegramApi {
 
     companion object {
-        // Решение проблемы 2: Ограничиваем до 1 одновременного запроса на всё приложение
         private val networkSemaphore = Semaphore(1)
+
+        private const val TELEGRAM_LIMIT = 49 * 1024 * 1024
+        private const val RENDER_PROXY_URL = "https://telegram-bot-api-latest-wuhf.onrender.com"
     }
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(2, TimeUnit.MINUTES)
-            .writeTimeout(30, TimeUnit.MINUTES)
-            .readTimeout(2, TimeUnit.MINUTES)
+            .connectTimeout(5, TimeUnit.MINUTES)
+            .writeTimeout(60, TimeUnit.MINUTES)
+            .readTimeout(5, TimeUnit.MINUTES)
             .build()
     }
 
@@ -35,28 +36,31 @@ class TelegramApi {
         file: File,
         fileName: String
     ): Pair<Boolean, String?> {
-        // Ждем своей очереди (если файлов 4000, они будут проходить по одному)
+
         networkSemaphore.acquire()
         try {
-            // Небольшая пауза, чтобы Telegram не посчитал нас спамером
             delay(800)
 
-            // Попытка 1: Стандартная отправка
-            val firstTry = executeUpload(botToken, chatId, topicId, file, fileName, false)
+            val isLargeFile = file.length() > TELEGRAM_LIMIT
+            val baseUrl = if (isLargeFile) RENDER_PROXY_URL else "https://api.telegram.org"
 
-            // Решение проблемы 1: Если ошибка 400 или "PHOTO_INVALID_DIMENSIONS"
-            if (!firstTry.first && (firstTry.second?.contains("400") == true || firstTry.second?.contains("dimensions") == true)) {
-                Log.w("TelegramApi", "Invalid dimensions for $fileName, retrying as Document")
-                return executeUpload(botToken, chatId, topicId, file, fileName, true)
+
+            var result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, false)
+
+            if (!result.first && (result.second?.contains("400") == true || result.second?.contains("dimensions") == true)) {
+                Log.w("TelegramApi", "Retrying $fileName as Document via $baseUrl")
+                delay(1000)
+                result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, true)
             }
 
-            return firstTry
+            return result
         } finally {
             networkSemaphore.release()
         }
     }
 
     private suspend fun executeUpload(
+        baseUrl: String,
         botToken: String,
         chatId: String,
         topicId: Int?,
@@ -75,7 +79,7 @@ class TelegramApi {
             else -> Triple("sendDocument", "document", "application/octet-stream")
         }
 
-        val url = "https://api.telegram.org/bot$botToken/$method"
+        val finalUrl = "$baseUrl/bot$botToken/$method"
 
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
@@ -84,19 +88,24 @@ class TelegramApi {
             .addFormDataPart(mediaKey, fileName, file.asRequestBody(mediaType.toMediaTypeOrNull()))
             .build()
 
-        val request = Request.Builder().url(url).post(requestBody).build()
+        val request = Request.Builder()
+            .url(finalUrl)
+            .post(requestBody)
+            .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                continuation.resume(Pair(false, e.message))
+                continuation.resume(Pair(false, "Network error: ${e.message}"))
             }
 
             override fun onResponse(call: Call, response: Response) {
                 val responseBody = response.body?.string() ?: ""
-                if (response.isSuccessful && responseBody.contains("\"ok\":true")) {
+                val isOk = response.isSuccessful && responseBody.contains("\"ok\":true")
+
+                if (isOk) {
                     continuation.resume(Pair(true, null))
                 } else {
-                    continuation.resume(Pair(false, "Error: ${response.code} - $responseBody"))
+                    continuation.resume(Pair(false, "Status: ${response.code} - $responseBody"))
                 }
                 response.close()
             }
