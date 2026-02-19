@@ -16,7 +16,7 @@ class SettingsManager(private val context: Context) {
         }
 
     var syncInterval: Long
-        get() = sharedPreferences.getLong("sync_interval", 15 * 60 * 1000) // 15 минут по умолчанию
+        get() = sharedPreferences.getLong("sync_interval", 15 * 60 * 1000)
         set(value) = sharedPreferences.edit { putLong("sync_interval", value) }
 
     var botToken: String?
@@ -30,6 +30,10 @@ class SettingsManager(private val context: Context) {
     var syncOption: String
         get() = sharedPreferences.getString("sync_option", "wifi_and_mobile") ?: "wifi_and_mobile"
         set(value) = sharedPreferences.edit { putString("sync_option", value) }
+
+    var isServiceRunning: Boolean
+        get() = sharedPreferences.getBoolean("is_service_running", false)
+        set(value) = sharedPreferences.edit { putBoolean("is_service_running", value) }
 
     fun clearSettings() {
         sharedPreferences.edit { clear() }

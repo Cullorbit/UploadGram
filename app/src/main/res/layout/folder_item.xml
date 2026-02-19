@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView    xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -64,42 +64,47 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="@+id/ivFolderIcon"/>
 
-        <LinearLayout
-            android:id="@+id/buttons_container"
-            android:layout_width="match_parent"
+        <androidx.constraintlayout.helper.widget.Flow
+            android:id="@+id/buttons_flow"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:layout_marginTop="16dp"
-            android:gravity="end|center_vertical"
+            app:constraint_referenced_ids="btnResetCache,btnDeleteFolder"
+            app:flow_wrapMode="chain"
+            app:flow_horizontalGap="8dp"
+            app:flow_verticalGap="8dp"
+            app:flow_horizontalStyle="packed"
+            app:flow_horizontalBias="1.0"
             app:layout_constraintTop_toBottomOf="@id/ivFolderIcon"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintEnd_toEndOf="parent" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnResetCache"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/reset_cache"
-                app:icon="@drawable/ic_reset" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnResetCache"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/reset_cache"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            app:iconPadding="4dp"
+            app:icon="@drawable/ic_reset"
+            tools:ignore="MissingConstraints" />
 
-            <Space
-                android:layout_width="24dp"
-                android:layout_height="0dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDeleteFolder"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:text="@string/delete"
-                app:icon="@drawable/ic_delete"
-                app:iconTint="?attr/colorError"
-                app:strokeColor="?attr/colorError"
-                android:textColor="?attr/colorError"/>
-
-        </LinearLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeleteFolder"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/delete"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            app:iconPadding="4dp"
+            app:icon="@drawable/ic_delete"
+            app:iconTint="?attr/colorError"
+            app:strokeColor="?attr/colorError"
+            android:textColor="?attr/colorError"
+            tools:ignore="MissingConstraints" />
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -110,7 +115,7 @@
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/buttons_container"
+            app:layout_constraintTop_toBottomOf="@id/buttons_flow"
             tools:visibility="visible" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

@@ -6,20 +6,27 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.GestureDetector
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.documentfile.provider.DocumentFile
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.photouploaderapp.configs.AddFolderDialog
@@ -34,6 +41,7 @@ import com.example.photouploaderapp.configs.SettingsManager
 import com.example.photouploaderapp.configs.UIUpdater
 import com.example.photouploaderapp.configs.SyncIntervalDialog
 import com.example.photouploaderapp.databinding.ActivityMainBinding
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity(),
     AddFolderDialog.AddFolderListener,
@@ -48,13 +56,29 @@ class MainActivity : AppCompatActivity(),
     private lateinit var serviceController: ServiceController
     private lateinit var navigationHandler: NavigationHandler
     private lateinit var uiUpdater: UIUpdater
+    private lateinit var drawerToggle: ActionBarDrawerToggle
+    private lateinit var gestureDetector: GestureDetector
 
     lateinit var folderPickerLauncher: ActivityResultLauncher<Uri?>
 
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (!isGranted) {
+            Toast.makeText(this, "Разрешение на уведомления необходимо для работы в фоне", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private val logReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val message = intent?.getStringExtra("log_message") ?: return
-            logHelper.log(message)
+            logHelper.loadSavedLog()
+        }
+    }
+
+    private val serviceStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val isRunning = intent?.getBooleanExtra("is_running", false) ?: false
+            updateServiceState(isRunning)
         }
     }
 
@@ -76,31 +100,85 @@ class MainActivity : AppCompatActivity(),
         setupListeners()
         setupAppVersion()
         loadData()
-        serviceController.cancelPeriodicScan()
+        initGestureDetector()
 
-        updateServiceState(false)
+        updateServiceState(settingsManager.isServiceRunning)
+
+        checkNotificationPermission()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            binding.drawerLayout.post {
+                val exclusionRects = mutableListOf<Rect>()
+                val rect = Rect(0, 0, 200, binding.drawerLayout.height)
+                exclusionRects.add(rect)
+                binding.drawerLayout.systemGestureExclusionRects = exclusionRects
+            }
+        }
+    }
+
+    private fun initGestureDetector() {
+        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                if (e1 == null) return false
+                
+                val diffX = e2.x - e1.x
+                val diffY = e2.y - e1.y
+                
+                if (abs(diffX) > abs(diffY) && diffX > 100 && abs(velocityX) > 100) {
+                    if (!binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                        binding.drawerLayout.openDrawer(GravityCompat.START)
+                        return true
+                    }
+                }
+                return false
+            }
+        })
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        gestureDetector.onTouchEvent(ev)
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     private fun setupToolbarAndDrawer() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeButtonEnabled(true)
 
-        val toggle = ActionBarDrawerToggle(
+        drawerToggle = ActionBarDrawerToggle(
             this,
             binding.drawerLayout,
             binding.toolbar,
             R.string.navigation_drawer_open,
             R.string.navigation_drawer_close
         )
-        binding.drawerLayout.addDrawerListener(toggle)
-        toggle.syncState()
+        binding.drawerLayout.addDrawerListener(drawerToggle)
+        binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+        drawerToggle.syncState()
     }
 
     override fun onFolderAdded(folder: Folder) {
         folders.add(folder)
         folderAdapter.notifyItemInserted(folders.size - 1)
         saveFolders()
-        logHelper.log(getString(R.string.new_folder_added, folder.name))
+        LogHelper.writeLog(this, getString(R.string.new_folder_added, folder.name))
         stopServiceIfNeeded()
     }
 
@@ -143,27 +221,23 @@ class MainActivity : AppCompatActivity(),
         binding.btnToggleService.setOnClickListener {
             if (isServiceRunning) {
                 serviceController.stopService()
-                updateServiceState(false)
             } else {
                 if (settingsManager.botToken.isNullOrEmpty() || settingsManager.chatId.isNullOrEmpty()) {
-                    logHelper.log(getString(R.string.configure_bot_token_chat_id))
+                    LogHelper.writeLog(this, getString(R.string.configure_bot_token_chat_id))
                     return@setOnClickListener
                 }
                 if (folders.none { it.isSyncing }) {
-                    logHelper.log(getString(R.string.no_folders_for_sync))
+                    LogHelper.writeLog(this, getString(R.string.no_folders_for_sync))
                     return@setOnClickListener
                 }
                 serviceController.startService(folders)
-                updateServiceState(true)
             }
         }
 
         setupAdapterListeners()
 
         folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-            uri?.let {
-                // This is a placeholder, as the launcher is used in dialogs.
-            }
+            uri?.let {}
         }
     }
 
@@ -194,7 +268,7 @@ class MainActivity : AppCompatActivity(),
                     folderAdapter.notifyItemRemoved(position)
                     folderAdapter.notifyItemRangeChanged(position, folders.size)
                     saveFolders()
-                    logHelper.log(getString(R.string.folder_deleted, removedFolderName))
+                    LogHelper.writeLog(this@MainActivity, getString(R.string.folder_deleted, removedFolderName))
                     stopServiceIfNeeded()
                 }
             }
@@ -226,7 +300,7 @@ class MainActivity : AppCompatActivity(),
             .setMessage(getString(R.string.reset_cache_message, folder.name))
             .setPositiveButton(getString(R.string.reset_cache_confirm)) { _, _ ->
                 resetSentFilesCacheForFolder(folder)
-                logHelper.log(getString(R.string.cache_cleared_for_folder, folder.name))
+                LogHelper.writeLog(this@MainActivity, getString(R.string.cache_cleared_for_folder, folder.name))
                 stopServiceIfNeeded(getString(R.string.service_stopped_due_to_cache_reset))
             }
             .setNegativeButton(getString(R.string.cancel), null)
@@ -270,23 +344,27 @@ class MainActivity : AppCompatActivity(),
 
     @SuppressLint("NotifyDataSetChanged")
     private fun loadData() {
-        logHelper.clearSavedLog()
+        logHelper.loadSavedLog()
         loadFolders()
         folderAdapter.notifyDataSetChanged()
         uiUpdater.updateSettingsDisplay()
         if (settingsManager.botToken.isNullOrEmpty() || settingsManager.chatId.isNullOrEmpty()) {
-            logHelper.log(getString(R.string.configure_bot_token_chat_id))
+            LogHelper.writeLog(this, getString(R.string.configure_bot_token_chat_id))
         }
     }
 
     override fun onResume() {
         super.onResume()
-        LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, IntentFilter("com.example.photouploaderapp.UPLOAD_LOG"))
+        LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, IntentFilter(LogHelper.ACTION_LOG_UPDATED))
+        LocalBroadcastManager.getInstance(this).registerReceiver(serviceStateReceiver, IntentFilter("com.example.photouploaderapp.SERVICE_STATE_CHANGED"))
+        updateServiceState(settingsManager.isServiceRunning)
+        logHelper.loadSavedLog()
     }
 
     override fun onPause() {
         super.onPause()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(serviceStateReceiver)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -294,6 +372,9 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (drawerToggle.onOptionsItemSelected(item)) {
+            return true
+        }
         return super.onOptionsItemSelected(item)
     }
 
@@ -334,8 +415,7 @@ class MainActivity : AppCompatActivity(),
     fun stopServiceIfNeeded(logMessage: String? = null) {
         if (isServiceRunning) {
             serviceController.stopService()
-            updateServiceState(false)
-            logMessage?.let { logHelper.log(it) }
+            logMessage?.let { LogHelper.writeLog(this, it) }
         }
     }
 

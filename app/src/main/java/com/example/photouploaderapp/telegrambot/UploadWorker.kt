@@ -5,17 +5,16 @@ import android.net.Uri
 import android.util.Log
 import androidx.core.content.edit
 import androidx.core.net.toUri
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.photouploaderapp.R
+import com.example.photouploaderapp.configs.LogHelper
 import java.io.File
 import java.io.FileOutputStream
 
 class UploadWorker(private val context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     private val TAG = "UploadWorker"
-    private val telegramApi = TelegramApi()
 
     override suspend fun doWork(): Result {
         val botToken = inputData.getString("KEY_BOT_TOKEN") ?: return Result.failure()
@@ -27,13 +26,13 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
 
         val cachedFile = createCacheFileFromUri(fileUriString.toUri(), originalFileName)
         if (cachedFile == null) {
-            sendLog("ОШИБКА КЭШИРОВАНИЯ: $originalFileName", folderName)
+            LogHelper.writeLog(context, "ОШИБКА КЭШИРОВАНИЯ: $originalFileName", folderName)
             return Result.failure()
         }
 
-        sendLog("Отправляю файл: $originalFileName", folderName)
+        LogHelper.writeLog(context, "Отправляю файл: $originalFileName", folderName)
 
-        val (isSuccess, errorMessage) = telegramApi.sendDocument(
+        val (isSuccess, errorMessage) = TelegramApi.sendDocument(
             botToken = botToken,
             chatId = chatId,
             topicId = topicId,
@@ -45,13 +44,13 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
 
         if (isSuccess) {
             Log.d(TAG, "Work SUCCESS for $originalFileName")
-            sendLog(context.getString(R.string.file_sent_successfully, originalFileName), folderName)
+            LogHelper.writeLog(context, context.getString(R.string.file_sent_successfully, originalFileName), folderName)
             markFileAsSent(context, fileUriString)
             return Result.success()
         } else {
             Log.w (TAG, "Work FAILURE for $originalFileName. Reason: $errorMessage")
             val errorText = errorMessage ?: context.getString(R.string.error_sending_file_queued, originalFileName)
-            sendLog(errorText, folderName)
+            LogHelper.writeLog(context, errorText, folderName)
             return Result.retry()
         }
     }
@@ -73,20 +72,9 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
         }
     }
 
-    private fun sendLog(message: String, folderName: String) {
-        val intent = android.content.Intent("com.example.photouploaderapp.UPLOAD_LOG").apply {
-            putExtra("log_message", message)
-            putExtra("folder_name", folderName)
-        }
-        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
-    }
-
     private fun markFileAsSent(context: Context, fileUri: String) {
         val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
         sentFilesPrefs.edit { putBoolean(fileUri, true) }
         Log.d(TAG, "File marked as sent: $fileUri")
     }
 }
-
-
-

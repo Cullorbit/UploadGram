@@ -1,6 +1,7 @@
 package com.example.photouploaderapp.configs
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
@@ -9,6 +10,7 @@ import androidx.work.*
 import com.example.photouploaderapp.R
 import com.example.photouploaderapp.telegrambot.ScanWorker
 import com.example.photouploaderapp.telegrambot.UploadWorker
+import com.example.photouploaderapp.telegrambot.SyncForegroundService
 import java.util.concurrent.TimeUnit
 
 class ServiceController(private val context: Context, private val settingsManager: SettingsManager) {
@@ -20,13 +22,13 @@ class ServiceController(private val context: Context, private val settingsManage
         val networkUtils = NetworkUtils(context)
         val requiredNetwork = if (settingsManager.syncOption == "wifi_only") {
             if (!networkUtils.isWifiConnected()) {
-                sendLogToUI(context.getString(R.string.sync_available_wifi_only))
+                LogHelper.writeLog(context, context.getString(R.string.sync_available_wifi_only))
                 return
             }
             NetworkType.UNMETERED
         } else {
             if (!networkUtils.isConnected()) {
-                sendLogToUI(context.getString(R.string.no_internet_connection))
+                LogHelper.writeLog(context, context.getString(R.string.no_internet_connection))
                 return
             }
             NetworkType.CONNECTED
@@ -44,8 +46,47 @@ class ServiceController(private val context: Context, private val settingsManage
             immediateScanRequest
         )
 
-        sendLogToUI(context.getString(R.string.initial_scan_started))
+        val periodicScanRequest = PeriodicWorkRequestBuilder<ScanWorker>(
+            settingsManager.syncInterval, TimeUnit.MILLISECONDS,
+            15, TimeUnit.MINUTES
+        )
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(requiredNetwork).build())
+            .setInputData(workDataOf("is_periodic" to true))
+            .addTag("periodic_scan_work")
+            .build()
+
+        workManager.enqueueUniquePeriodicWork(
+            "FolderScanWork",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            periodicScanRequest
+        )
+
+        updateForegroundService(true)
+        LogHelper.writeLog(context, context.getString(R.string.initial_scan_started))
         logNextSyncTime()
+    }
+
+    private fun updateForegroundService(isRunning: Boolean) {
+        settingsManager.isServiceRunning = isRunning
+        
+        val serviceIntent = Intent(context, SyncForegroundService::class.java).apply {
+            putExtra("is_running", isRunning)
+        }
+        
+        if (isRunning) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+        } else {
+            context.startService(serviceIntent)
+        }
+
+        val stateIntent = Intent("com.example.photouploaderapp.SERVICE_STATE_CHANGED").apply {
+            putExtra("is_running", isRunning)
+        }
+        LocalBroadcastManager.getInstance(context).sendBroadcast(stateIntent)
     }
 
     fun scanFolders(folders: List<Folder>, isPeriodic: Boolean) {
@@ -55,7 +96,7 @@ class ServiceController(private val context: Context, private val settingsManage
             context.getString(R.string.scan_initial_check)
         }
         if (isPeriodic) {
-            sendLogToUI(message)
+            LogHelper.writeLog(context, message)
         }
 
         val networkType = if (settingsManager.syncOption == "wifi_only") NetworkType.UNMETERED else NetworkType.CONNECTED
@@ -67,12 +108,20 @@ class ServiceController(private val context: Context, private val settingsManage
         }
 
         if (allUploadRequests.isEmpty()) {
-            sendLogToUI(context.getString(R.string.no_new_files_found))
+            LogHelper.writeLog(context, context.getString(R.string.no_new_files_found))
         } else {
-            workManager.beginUniqueWork("FileUploadChain", ExistingWorkPolicy.REPLACE, allUploadRequests.first())
-                .then(allUploadRequests.drop(1))
-                .enqueue()
-            sendLogToUI(context.getString(R.string.scan_found_files, allUploadRequests.size))
+            var continuation = workManager.beginUniqueWork(
+                "FileUploadChain",
+                ExistingWorkPolicy.REPLACE,
+                allUploadRequests.first()
+            )
+
+            allUploadRequests.drop(1).forEach { workRequest ->
+                continuation = continuation.then(workRequest)
+            }
+
+            continuation.enqueue()
+            LogHelper.writeLog(context, context.getString(R.string.scan_found_files, allUploadRequests.size))
         }
     }
 
@@ -82,7 +131,7 @@ class ServiceController(private val context: Context, private val settingsManage
             intervalMillis = TimeUnit.MINUTES.toMillis(15)
         }
         val minutes = TimeUnit.MILLISECONDS.toMinutes(intervalMillis)
-        sendLogToUI(context.getString(R.string.service_configured_next_check, minutes))
+        LogHelper.writeLog(context, context.getString(R.string.service_configured_next_check, minutes))
     }
 
     private fun createWorkRequestsForFolder(folder: Folder, networkType: NetworkType): List<OneTimeWorkRequest> {
@@ -93,7 +142,7 @@ class ServiceController(private val context: Context, private val settingsManage
             val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
 
             if (documentFolder == null || !documentFolder.canRead()) {
-                sendLogToUI(context.getString(R.string.error_folder_access, folder.name), context.getString(R.string.system_log_name))
+                LogHelper.writeLog(context, context.getString(R.string.error_folder_access, folder.name), context.getString(R.string.system_log_name))
                 return emptyList()
             }
 
@@ -101,7 +150,6 @@ class ServiceController(private val context: Context, private val settingsManage
                 val fileName = docFile.name ?: return@forEach
 
                 if (fileName.startsWith(".")) {
-                    Log.d(TAG, context.getString(R.string.log_skipping_hidden_file, fileName))
                     return@forEach
                 }
 
@@ -129,17 +177,9 @@ class ServiceController(private val context: Context, private val settingsManage
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error scanning folder ${folder.name}", e)
-            sendLogToUI(context.getString(R.string.error_critical_scan, folder.name, e.message), context.getString(R.string.system_log_name))
+            LogHelper.writeLog(context, context.getString(R.string.error_critical_scan, folder.name, e.message), context.getString(R.string.system_log_name))
         }
         return requests
-    }
-
-    private fun sendLogToUI(message: String, folderName: String = context.getString(R.string.system_log_name)) {
-        val intent = android.content.Intent("com.example.photouploaderapp.UPLOAD_LOG").apply {
-            putExtra("log_message", message)
-            putExtra("folder_name", folderName)
-        }
-        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
     }
 
     private fun isValidMedia(file: DocumentFile, mediaType: String): Boolean {
@@ -167,7 +207,8 @@ class ServiceController(private val context: Context, private val settingsManage
         workManager.cancelUniqueWork("FolderScanWork")
         workManager.cancelUniqueWork("ImmediateScan")
         workManager.cancelUniqueWork("FileUploadChain")
-        sendLogToUI(context.getString(R.string.service_stopped))
+        updateForegroundService(false)
+        LogHelper.writeLog(context, context.getString(R.string.service_stopped))
     }
 
     fun cancelPeriodicScan() {

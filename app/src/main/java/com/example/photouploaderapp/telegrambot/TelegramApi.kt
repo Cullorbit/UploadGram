@@ -8,26 +8,15 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-class TelegramApi {
+object TelegramApi {
 
-    companion object {
-        private val networkSemaphore = Semaphore(1)
-
-        private const val TELEGRAM_LIMIT = 49 * 1024 * 1024
-        private const val RENDER_PROXY_URL = "https://telegram-bot-api-latest-wuhf.onrender.com"
-    }
-
-    private val client: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.MINUTES)
-            .writeTimeout(60, TimeUnit.MINUTES)
-            .readTimeout(5, TimeUnit.MINUTES)
-            .build()
-    }
+    private val networkSemaphore = Semaphore(1)
+    private const val TELEGRAM_LIMIT = 49 * 1024 * 1024
+    private const val RENDER_PROXY_URL = "https://telegram-bot-api-latest-wuhf.onrender.com"
+    private val client = NetworkClient.client
 
     suspend fun sendDocument(
         botToken: String,
@@ -39,11 +28,8 @@ class TelegramApi {
 
         networkSemaphore.acquire()
         try {
-            delay(800)
-
             val isLargeFile = file.length() > TELEGRAM_LIMIT
             val baseUrl = if (isLargeFile) RENDER_PROXY_URL else "https://api.telegram.org"
-
 
             var result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, false)
 
@@ -52,6 +38,8 @@ class TelegramApi {
                 delay(1000)
                 result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, true)
             }
+
+            delay(1500)
 
             return result
         } finally {
