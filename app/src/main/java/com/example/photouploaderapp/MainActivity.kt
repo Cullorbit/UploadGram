@@ -41,6 +41,7 @@ import com.example.photouploaderapp.configs.SettingsManager
 import com.example.photouploaderapp.configs.UIUpdater
 import com.example.photouploaderapp.configs.SyncIntervalDialog
 import com.example.photouploaderapp.databinding.ActivityMainBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.math.abs
 
 class MainActivity : AppCompatActivity(),
@@ -309,56 +310,100 @@ class MainActivity : AppCompatActivity(),
 
     private fun resetSentFilesCacheForFolder(folder: Folder) {
         val sentFilesPrefs = getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
-        val editor = sentFilesPrefs.edit()
-
-        val folderUri = folder.path.toUri()
-        val documentFolder = DocumentFile.fromTreeUri(this, folderUri)
-
-        documentFolder?.listFiles()?.forEach { file ->
-            if (isValidMediaForReset(file, folder.mediaType)) {
-                editor.remove(file.uri.toString())
+        val allEntries = sentFilesPrefs.all
+        val folderUriPrefix = folder.path
+        sentFilesPrefs.edit().apply {
+            allEntries.keys.forEach { key ->
+                if (key.startsWith(folderUriPrefix)) {
+                    remove(key)
+                }
             }
-        }
-        editor.apply()
-    }
-
-    private fun isValidMediaForReset(file: DocumentFile, mediaType: String): Boolean {
-        val fileName = file.name?.lowercase() ?: return false
-        val isFilePhoto = listOf(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp").any { fileName.endsWith(it) }
-        val isFileVideo = listOf(".mp4", ".mkv", ".webm", ".avi", ".mov", ".3gp", ".flv").any { fileName.endsWith(it) }
-        val isFileAudio = listOf(".mp3", ".m4a", ".ogg", ".wav", ".flac").any { fileName.endsWith(it) }
-
-        val photoTypeString = getString(R.string.only_photo)
-        val videoTypeString = getString(R.string.only_video)
-        val audioTypeString = getString(R.string.only_audio)
-        val allTypeString = getString(R.string.all_media)
-
-        return when (mediaType) {
-            photoTypeString -> isFilePhoto
-            videoTypeString -> isFileVideo
-            audioTypeString -> isFileAudio
-            allTypeString -> isFilePhoto || isFileVideo || isFileAudio
-            else -> false
+            apply()
         }
     }
 
-    @SuppressLint("NotifyDataSetChanged")
-    private fun loadData() {
-        logHelper.loadSavedLog()
-        loadFolders()
-        folderAdapter.notifyDataSetChanged()
+    private fun showAddFolderDialog() {
+        val dialog = AddFolderDialog(settingsManager)
+        dialog.show(supportFragmentManager, "AddFolderDialog")
+    }
+
+    private fun showEditFolderDialog(position: Int) {
+        val folder = folders[position]
+        val dialog = EditFolderDialog(settingsManager, folder)
+        dialog.show(supportFragmentManager, "EditFolderDialog")
+    }
+
+    fun showSyncIntervalDialog() {
+        val dialog = SyncIntervalDialog(settingsManager)
+        dialog.show(supportFragmentManager, "SyncIntervalDialog")
+    }
+
+    fun showCacheLimitDialog() {
+        val limits = arrayOf(
+            getString(R.string.cache_unlimited),
+            getString(R.string.cache_size_gb, 2),
+            getString(R.string.cache_size_gb, 5),
+            getString(R.string.cache_size_gb, 16)
+        )
+        val limitValues = arrayOf(0L, 2L, 5L, 16L).map { it * 1024 * 1024 * 1024 }
+        
+        val currentLimit = settingsManager.cacheLimit
+        val checkedItem = limitValues.indexOf(currentLimit).coerceAtLeast(0)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.cache_limit))
+            .setSingleChoiceItems(limits, checkedItem) { dialog, which ->
+                settingsManager.cacheLimit = limitValues[which]
+                uiUpdater.updateSettingsDisplay()
+                dialog.dismiss()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    fun stopServiceIfNeeded(message: String? = null) {
+        if (isServiceRunning) {
+            serviceController.stopService()
+            message?.let { LogHelper.writeLog(this, it) }
+        }
+    }
+
+    private fun updateServiceState(isRunning: Boolean) {
+        isServiceRunning = isRunning
+        binding.btnToggleService.text = if (isRunning) getString(R.string.stop_service) else getString(R.string.start_service)
         uiUpdater.updateSettingsDisplay()
-        if (settingsManager.botToken.isNullOrEmpty() || settingsManager.chatId.isNullOrEmpty()) {
-            LogHelper.writeLog(this, getString(R.string.configure_bot_token_chat_id))
+    }
+
+    private fun loadData() {
+        val json = sharedPreferences.getString("folders", null)
+        if (json != null) {
+            val type = object : com.google.gson.reflect.TypeToken<List<Folder>>() {}.type
+            val loadedFolders: List<Folder> = com.google.gson.Gson().fromJson(json, type)
+            folders.clear()
+            folders.addAll(loadedFolders)
+            folderAdapter.notifyDataSetChanged()
         }
+        logHelper.loadSavedLog()
+    }
+
+    private fun saveFolders() {
+        val json = com.google.gson.Gson().toJson(folders)
+        sharedPreferences.edit().putString("folders", json).apply()
     }
 
     override fun onResume() {
         super.onResume()
-        LocalBroadcastManager.getInstance(this).registerReceiver(logReceiver, IntentFilter(LogHelper.ACTION_LOG_UPDATED))
-        LocalBroadcastManager.getInstance(this).registerReceiver(serviceStateReceiver, IntentFilter("com.example.photouploaderapp.SERVICE_STATE_CHANGED"))
-        updateServiceState(settingsManager.isServiceRunning)
-        logHelper.loadSavedLog()
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            logReceiver, IntentFilter(LogHelper.ACTION_LOG_UPDATED)
+        )
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            serviceStateReceiver, IntentFilter("com.example.photouploaderapp.SERVICE_STATE_CHANGED")
+        )
+        uiUpdater.updateSettingsDisplay()
     }
 
     override fun onPause() {
@@ -367,64 +412,8 @@ class MainActivity : AppCompatActivity(),
         LocalBroadcastManager.getInstance(this).unregisterReceiver(serviceStateReceiver)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+    override fun onSupportNavigateUp(): Boolean {
+        binding.drawerLayout.openDrawer(GravityCompat.START)
         return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (drawerToggle.onOptionsItemSelected(item)) {
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
-    internal fun showSyncIntervalDialog() {
-        SyncIntervalDialog(settingsManager).show(supportFragmentManager, "SyncIntervalDialog")
-    }
-
-    private fun showAddFolderDialog() {
-        AddFolderDialog(settingsManager).show(supportFragmentManager, "AddFolderDialog")
-    }
-
-    private fun showEditFolderDialog(position: Int) {
-        val folder = folders[position]
-        EditFolderDialog(settingsManager, folder).show(supportFragmentManager, "EditFolderDialog")
-    }
-
-    fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun saveFolders() {
-        val json = com.google.gson.Gson().toJson(folders)
-        sharedPreferences.edit().putString("folders", json).apply()
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private fun loadFolders() {
-        val json = sharedPreferences.getString("folders", null)
-        if (json != null) {
-            val type = object : com.google.gson.reflect.TypeToken<MutableList<Folder>>() {}.type
-            val loadedFolders: MutableList<Folder> = com.google.gson.Gson().fromJson(json, type)
-            folders.clear()
-            folders.addAll(loadedFolders)
-            folderAdapter.notifyDataSetChanged()
-        }
-    }
-
-    fun stopServiceIfNeeded(logMessage: String? = null) {
-        if (isServiceRunning) {
-            serviceController.stopService()
-            logMessage?.let { LogHelper.writeLog(this, it) }
-        }
-    }
-
-    private fun updateServiceState(isRunning: Boolean) {
-        isServiceRunning = isRunning
-        binding.btnToggleService.text = if (isRunning) getString(R.string.stop_service) else getString(R.string.start_service)
-    }
-
-    companion object {
-        private const val TAG = "MainActivity"
     }
 }

@@ -109,4 +109,10 @@
     <string name="system_log_name">СИСТЕМА</string>
     <string name="log_skipping_hidden_file">Пропускаю скрытый файл: %1$s</string>
     <string name="manual">Руководство</string>
+
+    <string name="cache_settings">Настройки кэша</string>
+    <string name="cache_limit">Предел кэша файлов</string>
+    <string name="cache_unlimited">Без ограничений</string>
+    <string name="cache_size_gb">%1$d ГБ</string>
+    <string name="cache_limit_reached">Лимит кэша достигнут. Старые файлы будут удалены.</string>
 </resources>

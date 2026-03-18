@@ -39,6 +39,10 @@ class NavigationHandler(
                 showSyncOptionsDialog()
                 true
             }
+            R.id.menu_cache_limit -> {
+                activity.showCacheLimitDialog()
+                true
+            }
             R.id.menu_reset_settings -> {
                 resetSettings()
                 true

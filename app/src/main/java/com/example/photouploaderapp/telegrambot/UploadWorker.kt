@@ -9,12 +9,14 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.photouploaderapp.R
 import com.example.photouploaderapp.configs.LogHelper
+import com.example.photouploaderapp.configs.SettingsManager
 import java.io.File
 import java.io.FileOutputStream
 
 class UploadWorker(private val context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     private val TAG = "UploadWorker"
+    private val settingsManager = SettingsManager(context)
 
     override suspend fun doWork(): Result {
         val botToken = inputData.getString("KEY_BOT_TOKEN") ?: return Result.failure()
@@ -23,6 +25,9 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
         val originalFileName = inputData.getString("KEY_ORIGINAL_FILE_NAME") ?: return Result.failure()
         val topicId = inputData.getInt("KEY_TOPIC", -1).takeIf { it > 0 }
         val folderName = inputData.getString("KEY_FOLDER_NAME") ?: return Result.failure()
+
+        // Проверяем и очищаем кэш перед работой
+        cleanCacheIfNeeded()
 
         val cachedFile = createCacheFileFromUri(fileUriString.toUri(), originalFileName)
         if (cachedFile == null) {
@@ -52,6 +57,30 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
             val errorText = errorMessage ?: context.getString(R.string.error_sending_file_queued, originalFileName)
             LogHelper.writeLog(context, errorText, folderName)
             return Result.retry()
+        }
+    }
+
+    private fun cleanCacheIfNeeded() {
+        val limit = settingsManager.cacheLimit
+        if (limit <= 0) return
+
+        val cacheDir = context.cacheDir
+        val files = cacheDir.listFiles()?.toMutableList() ?: return
+        
+        var currentSize = files.sumOf { it.length() }
+        
+        if (currentSize > limit) {
+            LogHelper.writeLog(context, context.getString(R.string.cache_limit_reached))
+            // Сортируем по дате изменения (старые в начале)
+            files.sortBy { it.lastModified() }
+            
+            while (currentSize > limit && files.isNotEmpty()) {
+                val fileToDelete = files.removeAt(0)
+                val fileSize = fileToDelete.length()
+                if (fileToDelete.delete()) {
+                    currentSize -= fileSize
+                }
+            }
         }
     }
 

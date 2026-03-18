@@ -100,4 +100,10 @@
     <string name="system_log_name">SYSTEM</string>
     <string name="log_skipping_hidden_file">Skipping hidden file: %1$s</string>
     <string name="manual">User Guide</string>
+
+    <string name="cache_settings">Cache settings</string>
+    <string name="cache_limit">Cache files limit</string>
+    <string name="cache_unlimited">Unlimited</string>
+    <string name="cache_size_gb">%1$d GB</string>
+    <string name="cache_limit_reached">Cache limit reached. Old files will be deleted.</string>
 </resources>

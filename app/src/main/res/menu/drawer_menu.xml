@@ -37,6 +37,19 @@
         </item>
     </group>
 
+    <group android:id="@+id/group_cache" android:checkableBehavior="none">
+        <item
+            android:id="@+id/header_cache_settings"
+            android:title="@string/cache_settings">
+            <menu>
+                <item
+                    android:id="@+id/menu_cache_limit"
+                    android:icon="@drawable/ic_sync_interval"
+                    android:title="@string/cache_limit" />
+            </menu>
+        </item>
+    </group>
+
     <group android:id="@+id/group_help" android:checkableBehavior="none">
         <item
             android:id="@+id/menu_manual"

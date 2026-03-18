@@ -39,5 +39,14 @@ class UIUpdater(private val activity: MainActivity, private val settingsManager:
         val intervalMinutes = settingsManager.syncInterval / (1000 * 60)
         val intervalStatus = activity.getString(R.string.sync_interval_minutes, intervalMinutes.toString())
         syncIntervalItem?.title = "${activity.getString(R.string.set_sync_interval)}\n($intervalStatus)"
+
+        val cacheLimitItem = menu.findItem(R.id.menu_cache_limit)
+        val limit = settingsManager.cacheLimit
+        val limitText = if (limit == 0L) {
+            activity.getString(R.string.cache_unlimited)
+        } else {
+            activity.getString(R.string.cache_size_gb, (limit / (1024 * 1024 * 1024)).toInt())
+        }
+        cacheLimitItem?.title = "${activity.getString(R.string.cache_limit)}\n($limitText)"
     }
 }
