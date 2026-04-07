@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -15,11 +18,40 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        create("release") {val props = Properties()
+            val localPropertiesFile = rootProject.file("local.properties")
 
+            if (localPropertiesFile.exists()) {
+                FileInputStream(localPropertiesFile).use { stream ->
+                    props.load(stream)
+                }
+            }
+
+            val keystorePath = props.getProperty("signing.storeFile")
+                ?: System.getenv("SIGNING_STORE_FILE")
+
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = props.getProperty("signing.storePassword") ?: System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias = props.getProperty("signing.keyAlias") ?: System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = props.getProperty("signing.keyPassword") ?: System.getenv("SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a")
+            isUniversalApk = true
         }
     }
     compileOptions {
