@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.UploadGram" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Настройка цветов Material 3 для темного режима. -->
+        <!-- Цвета для темной темы -->
         <item name="colorPrimary">@color/m3_dark_primary</item>
         <item name="colorOnPrimary">@color/m3_dark_onPrimary</item>
         <item name="colorPrimaryContainer">@color/m3_dark_primaryContainer</item>
@@ -28,19 +28,21 @@
         <item name="colorOnSurfaceInverse">@color/m3_dark_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/m3_dark_inversePrimary</item>
 
-        <!-- Customizing Material 3 Components -->
         <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
         <item name="materialButtonStyle">@style/Widget.Material3.Button</item>
         <item name="floatingActionButtonStyle">@style/Widget.Material3.FloatingActionButton.Primary</item>
         <item name="extendedFloatingActionButtonStyle">@style/Widget.Material3.ExtendedFloatingActionButton.Primary</item>
 
-        <!-- Typography -->
         <item name="textAppearanceTitleLarge">@style/TextAppearance.App.TitleLarge</item>
         <item name="textAppearanceTitleMedium">@style/TextAppearance.App.TitleMedium</item>
         <item name="textAppearanceBodyLarge">@style/TextAppearance.App.BodyLarge</item>
         <item name="textAppearanceBodyMedium">@style/TextAppearance.App.BodyMedium</item>
 
-        <!-- Navigation Drawer styling -->
         <item name="navigationViewStyle">@style/Widget.App.NavigationView</item>
+    </style>
+
+    <style name="Widget.App.NavigationView" parent="Widget.Material3.NavigationView">
+        <item name="itemIconTint">@color/nav_selected_text</item>
+        <item name="itemTextColor">@color/nav_selected_text</item>
     </style>
 </resources>
