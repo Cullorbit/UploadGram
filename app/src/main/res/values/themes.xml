@@ -76,7 +76,6 @@
         <item name="itemTextAppearance">@style/TextAppearance.App.LabelLarge</item>
         <item name="itemIconTint">@color/nav_selected_text</item>
         <item name="itemTextColor">@color/nav_selected_text</item>
-        <item name="itemBackground">@drawable/nav_item_background</item>
     </style>
 
     <style name="ShapeAppearance.App.NavigationView.Item" parent="">
