@@ -64,6 +64,13 @@
         <item>@string/only_video</item>
         <item>@string/only_audio</item>
     </string-array>
+
+    <string-array name="log_filters">
+        <item>Все</item>
+        <item>Успешные</item>
+        <item>Ошибки</item>
+    </string-array>
+
     <string name="log_cleared">Журнал очищен</string>
     <string name="service_stopped">Сервис остановлен</string>
     <string name="no_internet_connection">Отсутствует интернет-соединение.</string>
