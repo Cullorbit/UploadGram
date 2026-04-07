@@ -259,10 +259,11 @@ class MainActivity : AppCompatActivity(),
         try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
             val versionName = packageInfo.versionName
-            binding.tvAppVersion.text = "UploadGram Version: $versionName"
+            val headerView = binding.navigationView.getHeaderView(0)
+            val tvVersion = headerView.findViewById<android.widget.TextView>(R.id.tvAppVersion)
+            tvVersion?.text = "UploadGram Version: $versionName"
         } catch (e: Exception) {
             Log.e("MainActivity", "Couldn't get app version", e)
-            binding.tvAppVersion.text = ""
         }
     }
 
