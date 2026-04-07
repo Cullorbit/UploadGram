@@ -3,13 +3,13 @@ package com.example.photouploaderapp.telegrambot
 import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 object TelegramApi {
 
@@ -55,7 +55,7 @@ object TelegramApi {
         file: File,
         fileName: String,
         forceDocument: Boolean
-    ): Pair<Boolean, String?> = suspendCoroutine { continuation ->
+    ): Pair<Boolean, String?> = suspendCancellableCoroutine { continuation ->
 
         val fileExtension = fileName.substringAfterLast('.', "").lowercase()
 
@@ -81,19 +81,37 @@ object TelegramApi {
             .post(requestBody)
             .build()
 
-        client.newCall(request).enqueue(object : Callback {
+        val call = client.newCall(request)
+
+        // Обеспечиваем отмену запроса OkHttp при отмене корутины
+        continuation.invokeOnCancellation {
+            call.cancel()
+        }
+
+        call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                continuation.resume(Pair(false, "Network error: ${e.message}"))
+                if (continuation.isCancelled) return
+                val errorMsg = if (e is java.net.SocketTimeoutException) {
+                    "Timeout error: загрузка длилась слишком долго"
+                } else {
+                    "Network error: ${e.message}"
+                }
+                continuation.resume(Pair(false, errorMsg))
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val responseBody = response.body?.string() ?: ""
+                if (continuation.isCancelled) {
+                    response.close()
+                    return
+                }
+                val responseBody = try { response.body?.string() ?: "" } catch (e: Exception) { "" }
                 val isOk = response.isSuccessful && responseBody.contains("\"ok\":true")
 
                 if (isOk) {
                     continuation.resume(Pair(true, null))
                 } else {
-                    continuation.resume(Pair(false, "Status: ${response.code} - $responseBody"))
+                    val msg = if (response.code == 413) "Файл слишком большой для Telegram" else "Status: ${response.code} - $responseBody"
+                    continuation.resume(Pair(false, msg))
                 }
                 response.close()
             }

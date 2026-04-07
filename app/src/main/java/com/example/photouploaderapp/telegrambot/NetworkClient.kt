@@ -4,14 +4,13 @@ import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
 object NetworkClient {
-    // Увеличиваем таймауты, т.к. бесплатный сервер на Render "засыпает"
-    // и первый запрос может быть долгим. 2 минуты - хороший запас.
+    // Увеличиваем таймауты для стабильной работы с большими файлами и медленными прокси
     val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(2, TimeUnit.MINUTES)
-            .writeTimeout(15, TimeUnit.MINUTES) // 15 минут на загрузку большого файла
-            .readTimeout(2, TimeUnit.MINUTES)
+            .connectTimeout(1, TimeUnit.MINUTES)
+            .writeTimeout(30, TimeUnit.MINUTES) // 30 минут на загрузку (для очень больших видео или плохого интернета)
+            .readTimeout(10, TimeUnit.MINUTES)  // 10 минут на ожидание ответа от сервера после загрузки
+            .retryOnConnectionFailure(true)
             .build()
     }
 }
-        

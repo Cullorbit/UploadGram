@@ -1,4 +1,5 @@
-<resources><string name="app_name">UploadGram</string>
+<resources>
+    <string name="app_name">UploadGram</string>
     <string name="navigation_drawer_open">Открыть меню навигации</string>
     <string name="navigation_drawer_close">Закрыть меню навигации</string>
 
@@ -51,7 +52,7 @@
     <string name="folder">Папка</string>
     <string name="selected">Выбрана</string>
     <string name="not_selected">Не выбрана</string>
-    <string name="folder_details">Тема: %1$s, Тип: %2$s</string>
+    <string name="folder_details">Тема: %1$s • Тип: %2$s</string>
 
     <string name="all_media">Все</string>
     <string name="only_photo">Фото</string>
@@ -77,10 +78,7 @@
     <string name="reset_cache">Сбросить кэш</string>
     <string name="delete">Удалить</string>
     <string name="reset_cache_title">Сброс кэша</string>
-    <string name="reset_cache_message">Вы уверены, что хотите сбросить кэш отправленных файлов для
-        папки \"%1$s\"? Приложение забудет, какие файлы уже были отправлены, и попытается отправить
-        их все заново.
-    </string>
+    <string name="reset_cache_message">Вы уверены, что хотите сбросить кэш отправленных файлов для папки \"%1$s\"? Приложение забудет, какие файлы уже были отправлены, и попытается отправить их все заново.</string>
     <string name="reset_cache_confirm">Да, сбросить</string>
     <string name="cache_cleared_for_folder">Кэш для папки \"%1$s\" очищен.</string>
     <string name="folder_deleted">Папка \'%1$s\' удалена.</string>
@@ -115,4 +113,11 @@
     <string name="cache_unlimited">Без ограничений</string>
     <string name="cache_size_gb">%1$d ГБ</string>
     <string name="cache_limit_reached">Лимит кэша достигнут. Старые файлы будут удалены.</string>
+    <string name="drawer_subtitle">Синхронизируйте ваши медиа легко</string>
+    <string name="delete_folder_title">Удаление папки</string>
+    <string name="delete_folder_message">Вы уверены, что хотите удалить папку \"%1$s\" из списка синхронизации?</string>
+
+    <string name="sending_file">Отправка файла: %1$s</string>
+    <string name="error_timeout">Ошибка времени ожидания. Проверьте соединение или размер файла.</string>
+    <string name="upload_cancelled">Загрузка файла %1$s отменена пользователем.</string>
 </resources>

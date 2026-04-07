@@ -1,15 +1,19 @@
 package com.example.photouploaderapp.telegrambot
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.photouploaderapp.R
+import com.example.photouploaderapp.configs.FolderAdapter
 import com.example.photouploaderapp.configs.LogHelper
 import com.example.photouploaderapp.configs.SettingsManager
+import kotlinx.coroutines.CancellationException
 import java.io.File
 import java.io.FileOutputStream
 
@@ -25,37 +29,63 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
         val originalFileName = inputData.getString("KEY_ORIGINAL_FILE_NAME") ?: return Result.failure()
         val topicId = inputData.getInt("KEY_TOPIC", -1).takeIf { it > 0 }
         val folderName = inputData.getString("KEY_FOLDER_NAME") ?: return Result.failure()
+        val fileIdentifier = inputData.getString("KEY_FILE_IDENTIFIER") ?: fileUriString
 
-        // Проверяем и очищаем кэш перед работой
-        cleanCacheIfNeeded()
-
-        val cachedFile = createCacheFileFromUri(fileUriString.toUri(), originalFileName)
-        if (cachedFile == null) {
-            LogHelper.writeLog(context, "ОШИБКА КЭШИРОВАНИЯ: $originalFileName", folderName)
-            return Result.failure()
+        val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
+        if (sentFilesPrefs.contains(fileIdentifier)) {
+            Log.i(TAG, "File $originalFileName already sent, skipping.")
+            return Result.success()
         }
 
-        LogHelper.writeLog(context, "Отправляю файл: $originalFileName", folderName)
+        try {
+            cleanCacheIfNeeded()
 
-        val (isSuccess, errorMessage) = TelegramApi.sendDocument(
-            botToken = botToken,
-            chatId = chatId,
-            topicId = topicId,
-            file = cachedFile,
-            fileName = originalFileName
-        )
+            val cachedFile = createCacheFileFromUri(fileUriString.toUri(), originalFileName)
+            if (cachedFile == null) {
+                LogHelper.writeLog(context, "ОШИБКА КЭШИРОВАНИЯ: $originalFileName", folderName)
+                return Result.failure()
+            }
 
-        cachedFile.delete()
+            LogHelper.writeLog(context, context.getString(R.string.sending_file, originalFileName), folderName)
 
-        if (isSuccess) {
-            Log.d(TAG, "Work SUCCESS for $originalFileName")
-            LogHelper.writeLog(context, context.getString(R.string.file_sent_successfully, originalFileName), folderName)
-            markFileAsSent(context, fileUriString)
-            return Result.success()
-        } else {
-            Log.w (TAG, "Work FAILURE for $originalFileName. Reason: $errorMessage")
-            val errorText = errorMessage ?: context.getString(R.string.error_sending_file_queued, originalFileName)
-            LogHelper.writeLog(context, errorText, folderName)
+            val (isSuccess, errorMessage) = TelegramApi.sendDocument(
+                botToken = botToken,
+                chatId = chatId,
+                topicId = topicId,
+                file = cachedFile,
+                fileName = originalFileName
+            )
+
+            cachedFile.delete()
+
+            if (isSuccess) {
+                Log.d(TAG, "Work SUCCESS for $originalFileName")
+                LogHelper.writeLog(context, context.getString(R.string.file_sent_successfully, originalFileName), folderName)
+                markFileAsSent(context, fileIdentifier)
+                
+                // Уведомляем UI о том, что файл отправлен и превью нужно обновить
+                val intent = Intent(FolderAdapter.ACTION_PREVIEWS_UPDATED)
+                LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+                
+                return Result.success()
+            } else {
+                Log.w(TAG, "Work FAILURE for $originalFileName. Reason: $errorMessage")
+                
+                val finalErrorMessage = if (errorMessage?.contains("timeout", ignoreCase = true) == true) {
+                    context.getString(R.string.error_timeout)
+                } else {
+                    errorMessage ?: context.getString(R.string.error_sending_file_queued, originalFileName)
+                }
+                
+                LogHelper.writeLog(context, finalErrorMessage, folderName)
+                return Result.retry()
+            }
+        } catch (e: CancellationException) {
+            Log.i(TAG, "Work cancelled for $originalFileName")
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error in UploadWorker", e)
+            LogHelper.writeLog(context, "Error: ${e.message}", folderName)
             return Result.retry()
         }
     }
@@ -71,7 +101,6 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
         
         if (currentSize > limit) {
             LogHelper.writeLog(context, context.getString(R.string.cache_limit_reached))
-            // Сортируем по дате изменения (старые в начале)
             files.sortBy { it.lastModified() }
             
             while (currentSize > limit && files.isNotEmpty()) {
@@ -101,9 +130,9 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
         }
     }
 
-    private fun markFileAsSent(context: Context, fileUri: String) {
+    private fun markFileAsSent(context: Context, identifier: String) {
         val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
-        sentFilesPrefs.edit { putBoolean(fileUri, true) }
-        Log.d(TAG, "File marked as sent: $fileUri")
+        sentFilesPrefs.edit { putBoolean(identifier, true) }
+        Log.d(TAG, "File marked as sent: $identifier")
     }
 }

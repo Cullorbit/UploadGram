@@ -6,6 +6,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.photouploaderapp.R
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class LogHelper(
     private val context: Context,
@@ -18,10 +21,19 @@ class LogHelper(
 
     fun loadSavedLog() {
         val savedLog = logPrefs.getString("log_content", "")
-        if (!savedLog.isNullOrEmpty()) {
-            tvLog.text = savedLog
-            scrollToBottom()
-        }
+        tvLog.text = if (savedLog.isNullOrEmpty()) "" else savedLog
+        scrollToBottom()
+    }
+
+    /**
+     * Добавляет одну строку в UI без полной перезагрузки всего лога из SharedPreferences.
+     * Это решает проблему "зависания" интерфейса при большом количестве сообщений.
+     */
+    fun appendLog(message: String) {
+        val currentText = tvLog.text.toString()
+        val prefix = if (currentText.isEmpty()) "" else "\n\n"
+        tvLog.append("$prefix$message")
+        scrollToBottom()
     }
 
     fun log(message: String) {
@@ -40,13 +52,17 @@ class LogHelper(
 
     companion object {
         const val ACTION_LOG_UPDATED = "com.example.photouploaderapp.LOG_UPDATED"
+        const val EXTRA_MESSAGE = "extra_log_message"
 
         /**
-         * Статический метод для записи лога из любого места (в т.ч. из фоновых воркеров).
-         * Записывает сообщение в SharedPreferences и уведомляет UI об обновлении.
+         * Статический метод для записи лога.
+         * Использует synchronized для предотвращения конфликтов записи.
          */
+        @Synchronized
         fun writeLog(context: Context, message: String, folderName: String? = null) {
-            val fullMessage = if (!folderName.isNullOrEmpty()) "[$folderName] $message" else message
+            val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+            val folderPrefix = if (!folderName.isNullOrEmpty()) "[$folderName] " else ""
+            val fullMessage = "[$time] $folderPrefix$message"
             
             val prefs = context.getSharedPreferences("AppLog", Context.MODE_PRIVATE)
             val currentLog = prefs.getString("log_content", "") ?: ""
@@ -54,9 +70,20 @@ class LogHelper(
             val prefix = if (currentLog.isEmpty()) "" else "\n\n"
             val newLog = "$currentLog$prefix$fullMessage".trim()
             
-            prefs.edit().putString("log_content", newLog).apply()
+            // Ограничиваем общий размер лога в памяти
+            val maxLogSize = 30000 
+            val truncatedLog = if (newLog.length > maxLogSize) {
+                "..." + newLog.takeLast(maxLogSize - 3)
+            } else {
+                newLog
+            }
 
-            val intent = Intent(ACTION_LOG_UPDATED)
+            prefs.edit().putString("log_content", truncatedLog).apply()
+
+            // Отправляем сообщение вместе с интентом, чтобы UI мог просто добавить его
+            val intent = Intent(ACTION_LOG_UPDATED).apply {
+                putExtra(EXTRA_MESSAGE, fullMessage)
+            }
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
         }
     }

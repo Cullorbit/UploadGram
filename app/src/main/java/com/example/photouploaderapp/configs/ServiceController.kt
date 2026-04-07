@@ -108,11 +108,11 @@ class ServiceController(private val context: Context, private val settingsManage
         }
 
         if (allUploadRequests.isEmpty()) {
-            LogHelper.writeLog(context, context.getString(R.string.no_new_files_found))
+            if (!isPeriodic) LogHelper.writeLog(context, context.getString(R.string.no_new_files_found))
         } else {
             var continuation = workManager.beginUniqueWork(
                 "FileUploadChain",
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 allUploadRequests.first()
             )
 
@@ -147,15 +147,14 @@ class ServiceController(private val context: Context, private val settingsManage
             }
 
             documentFolder.listFiles().forEach { docFile ->
+                if (!docFile.isFile) return@forEach
                 val fileName = docFile.name ?: return@forEach
+                if (fileName.startsWith(".")) return@forEach
 
-                if (fileName.startsWith(".")) {
-                    return@forEach
-                }
+                // Создаем уникальный идентификатор: ID папки + имя файла + размер
+                val fileIdentifier = "folder_${folder.id}_${fileName}_${docFile.length()}"
 
-                val uniqueFileId = docFile.uri.toString()
-
-                if (docFile.isFile && !sentFilesPrefs.contains(uniqueFileId) && isValidMedia(docFile, folder.mediaType)) {
+                if (!sentFilesPrefs.contains(fileIdentifier) && isValidMedia(docFile, folder.mediaType)) {
                     val inputData = workDataOf(
                         "KEY_BOT_TOKEN" to (folder.botToken.ifEmpty { settingsManager.botToken ?: "" }),
                         "KEY_CHAT" to (folder.chatId.ifEmpty { settingsManager.chatId ?: "" }),
@@ -163,7 +162,8 @@ class ServiceController(private val context: Context, private val settingsManage
                         "KEY_ORIGINAL_FILE_NAME" to fileName,
                         "KEY_TOPIC" to (folder.getTopicId() ?: -1),
                         "KEY_FOLDER_NAME" to folder.name,
-                        "KEY_MEDIA_TYPE" to folder.mediaType
+                        "KEY_MEDIA_TYPE" to folder.mediaType,
+                        "KEY_FILE_IDENTIFIER" to fileIdentifier
                     )
                     val constraints = Constraints.Builder().setRequiredNetworkType(networkType).build()
                     val uploadWorkRequest = OneTimeWorkRequestBuilder<UploadWorker>()
@@ -171,6 +171,7 @@ class ServiceController(private val context: Context, private val settingsManage
                         .setConstraints(constraints)
                         .setBackoffCriteria(BackoffPolicy.LINEAR, 1, TimeUnit.MINUTES)
                         .addTag("upload_work")
+                        .addTag("folder_id_${folder.id}")
                         .build()
                     requests.add(uploadWorkRequest)
                 }

@@ -35,7 +35,6 @@ class SettingsManager(private val context: Context) {
         get() = sharedPreferences.getBoolean("is_service_running", false)
         set(value) = sharedPreferences.edit { putBoolean("is_service_running", value) }
 
-    // Лимит кэша в байтах. 0 = безлимитно. По умолчанию 2 ГБ.
     var cacheLimit: Long
         get() = sharedPreferences.getLong("cache_limit", 2L * 1024 * 1024 * 1024)
         set(value) = sharedPreferences.edit { putLong("cache_limit", value) }

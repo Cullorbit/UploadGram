@@ -2,12 +2,12 @@ package com.example.photouploaderapp.configs
 
 import android.content.Intent
 import android.net.Uri
+import android.view.LayoutInflater
 import android.view.MenuItem
-import android.widget.EditText
 import com.example.photouploaderapp.MainActivity
 import com.example.photouploaderapp.R
+import com.example.photouploaderapp.databinding.DialogGenericInputBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.textfield.TextInputLayout
 
 class NavigationHandler(
     private val activity: MainActivity,
@@ -60,39 +60,27 @@ class NavigationHandler(
     }
 
     private fun showInputDialog(title: String, hint: String, key: String, currentValue: String?) {
-        val builder = MaterialAlertDialogBuilder(activity)
-        builder.setTitle(title)
+        val binding = DialogGenericInputBinding.inflate(LayoutInflater.from(activity))
+        binding.textInputLayout.hint = hint
+        binding.editTextField.setText(currentValue)
 
-        val textInputLayout = TextInputLayout(activity).apply {
-            setPadding(
-                (19 * resources.displayMetrics.density).toInt(),
-                (8 * resources.displayMetrics.density).toInt(),
-                (19 * resources.displayMetrics.density).toInt(),
-                (8 * resources.displayMetrics.density).toInt()
-            )
-            this.hint = hint
-        }
-        val inputField = EditText(activity).apply {
-            setText(currentValue)
-        }
-        textInputLayout.addView(inputField)
-
-        builder.setView(textInputLayout)
-
-        builder.setPositiveButton(activity.getString(R.string.save)) { dialog, _ ->
-            val inputText = inputField.text.toString().trim()
-            if (inputText != (currentValue ?: "")) {
-                settingsManager.saveSetting(key, inputText)
-                uiUpdater.updateSettingsDisplay()
-                activity.showToast(activity.getString(R.string.setting_saved))
-                activity.stopServiceIfNeeded()
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(title)
+            .setView(binding.root)
+            .setPositiveButton(activity.getString(R.string.save)) { dialog, _ ->
+                val inputText = binding.editTextField.text.toString().trim()
+                if (inputText != (currentValue ?: "")) {
+                    settingsManager.saveSetting(key, inputText)
+                    uiUpdater.updateSettingsDisplay()
+                    activity.showToast(activity.getString(R.string.setting_saved))
+                    activity.stopServiceIfNeeded()
+                }
+                dialog.dismiss()
             }
-            dialog.dismiss()
-        }
-        builder.setNegativeButton(activity.getString(R.string.cancel)) { dialog, _ ->
-            dialog.cancel()
-        }
-        builder.show()
+            .setNegativeButton(activity.getString(R.string.cancel)) { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
     }
 
     private fun resetSettings() {

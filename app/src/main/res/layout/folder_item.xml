@@ -4,11 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="8dp"
-    android:layout_marginTop="4dp"
-    android:layout_marginEnd="8dp"
-    android:layout_marginBottom="4dp"
-    app:cardElevation="1dp">
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp"
+    style="@style/Widget.Material3.CardView.Filled">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -17,8 +19,10 @@
 
         <ImageView
             android:id="@+id/ivFolderIcon"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/shape_round_icon_bg"
+            android:padding="10dp"
             android:scaleType="centerInside"
             android:contentDescription="@string/folder"
             app:srcCompat="@drawable/ic_folder"
@@ -26,96 +30,91 @@
             app:layout_constraintTop_toTopOf="parent"
             app:tint="?attr/colorPrimary" />
 
-        <LinearLayout
-            android:id="@+id/text_layout"
+        <TextView
+            android:id="@+id/tvFolderName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:orientation="vertical"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
             app:layout_constraintEnd_toStartOf="@+id/cbSyncToggle"
             app:layout_constraintStart_toEndOf="@id/ivFolderIcon"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="@+id/ivFolderIcon">
+            app:layout_constraintTop_toTopOf="@id/ivFolderIcon"
+            tools:text="Camera" />
 
-            <TextView
-                android:id="@+id/tvFolderName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                tools:text="Camera" />
-
-            <TextView
-                android:id="@+id/tvFolderDetails"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="Тема: 123, Тип: Фото" />
-
-        </LinearLayout>
-
-        <CheckBox
-            android:id="@+id/cbSyncToggle"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:layout_gravity="center_vertical"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="@+id/ivFolderIcon"/>
-
-        <androidx.constraintlayout.helper.widget.Flow
-            android:id="@+id/buttons_flow"
+        <TextView
+            android:id="@+id/tvFolderDetails"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:constraint_referenced_ids="btnResetCache,btnDeleteFolder"
-            app:flow_wrapMode="chain"
-            app:flow_horizontalGap="8dp"
-            app:flow_verticalGap="8dp"
-            app:flow_horizontalStyle="packed"
-            app:flow_horizontalBias="1.0"
-            app:layout_constraintTop_toBottomOf="@id/ivFolderIcon"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            app:layout_constraintEnd_toStartOf="@+id/cbSyncToggle"
+            app:layout_constraintStart_toStartOf="@id/tvFolderName"
+            app:layout_constraintTop_toBottomOf="@id/tvFolderName"
+            tools:text="Тема: 123 • Тип: Фото" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/cbSyncToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@id/ivFolderIcon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/ivFolderIcon" />
+
+        <HorizontalScrollView
+            android:id="@+id/previewScrollView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:scrollbars="none"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/ivFolderIcon">
+
+            <LinearLayout
+                android:id="@+id/llPreviews"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <com.google.android.material.divider.MaterialDivider
+            android:id="@+id/divider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/previewScrollView" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnResetCache"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/reset_cache"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            app:iconPadding="4dp"
             app:icon="@drawable/ic_reset"
-            tools:ignore="MissingConstraints" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/divider" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDeleteFolder"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/delete"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            app:iconPadding="4dp"
+            android:textColor="?attr/colorError"
             app:icon="@drawable/ic_delete"
             app:iconTint="?attr/colorError"
-            app:strokeColor="?attr/colorError"
-            android:textColor="?attr/colorError"
-            tools:ignore="MissingConstraints" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/btnResetCache" />
 
-        <ProgressBar
+        <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/progressBar"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/buttons_flow"
+            app:layout_constraintTop_toBottomOf="@id/btnResetCache"
             tools:visibility="visible" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

@@ -13,19 +13,14 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.GestureDetector
-import android.view.Menu
-import android.view.MenuItem
 import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
-import androidx.documentfile.provider.DocumentFile
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -72,14 +67,29 @@ class MainActivity : AppCompatActivity(),
 
     private val logReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            logHelper.loadSavedLog()
+            val message = intent?.getStringExtra(LogHelper.EXTRA_MESSAGE)
+            if (message != null) {
+                logHelper.appendLog(message)
+            } else {
+                logHelper.loadSavedLog()
+            }
         }
     }
 
     private val serviceStateReceiver = object : BroadcastReceiver() {
+        @SuppressLint("NotifyDataSetChanged")
         override fun onReceive(context: Context?, intent: Intent?) {
             val isRunning = intent?.getBooleanExtra("is_running", false) ?: false
             updateServiceState(isRunning)
+            folderAdapter.notifyDataSetChanged()
+        }
+    }
+
+    // Ресивер для обновления превью
+    private val previewsUpdateReceiver = object : BroadcastReceiver() {
+        @SuppressLint("NotifyDataSetChanged")
+        override fun onReceive(context: Context?, intent: Intent?) {
+            folderAdapter.notifyDataSetChanged()
         }
     }
 
@@ -181,6 +191,7 @@ class MainActivity : AppCompatActivity(),
         saveFolders()
         LogHelper.writeLog(this, getString(R.string.new_folder_added, folder.name))
         stopServiceIfNeeded()
+        refreshPreviews()
     }
 
     override fun onFolderEdited(editedFolder: Folder) {
@@ -194,6 +205,7 @@ class MainActivity : AppCompatActivity(),
                 stopServiceIfNeeded()
             }
         }
+        refreshPreviews()
     }
 
     private fun initControllers() {
@@ -233,6 +245,7 @@ class MainActivity : AppCompatActivity(),
                 }
                 serviceController.startService(folders)
             }
+            refreshPreviews()
         }
 
         setupAdapterListeners()
@@ -264,13 +277,8 @@ class MainActivity : AppCompatActivity(),
         folderAdapter.setOnDeleteClickListener(object : FolderAdapter.OnDeleteClickListener {
             override fun onDeleteClick(position: Int) {
                 if (position in folders.indices) {
-                    val removedFolderName = folders[position].name
-                    folders.removeAt(position)
-                    folderAdapter.notifyItemRemoved(position)
-                    folderAdapter.notifyItemRangeChanged(position, folders.size)
-                    saveFolders()
-                    LogHelper.writeLog(this@MainActivity, getString(R.string.folder_deleted, removedFolderName))
-                    stopServiceIfNeeded()
+                    val folder = folders[position]
+                    showDeleteFolderConfirmationDialog(position, folder)
                 }
             }
         })
@@ -290,19 +298,39 @@ class MainActivity : AppCompatActivity(),
                     folders[position].isSyncing = isChecked
                     saveFolders()
                     stopServiceIfNeeded(getString(R.string.folder_changes_detected))
+                    refreshPreviews()
                 }
             }
         })
     }
 
+    private fun showDeleteFolderConfirmationDialog(position: Int, folder: Folder) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.delete_folder_title))
+            .setMessage(getString(R.string.delete_folder_message, folder.name))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                val removedFolderName = folder.name
+                folders.removeAt(position)
+                folderAdapter.notifyItemRemoved(position)
+                folderAdapter.notifyItemRangeChanged(position, folders.size)
+                saveFolders()
+                LogHelper.writeLog(this@MainActivity, getString(R.string.folder_deleted, removedFolderName))
+                stopServiceIfNeeded()
+                refreshPreviews()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
     private fun showResetCacheConfirmationDialog(folder: Folder) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.reset_cache_title))
             .setMessage(getString(R.string.reset_cache_message, folder.name))
             .setPositiveButton(getString(R.string.reset_cache_confirm)) { _, _ ->
                 resetSentFilesCacheForFolder(folder)
                 LogHelper.writeLog(this@MainActivity, getString(R.string.cache_cleared_for_folder, folder.name))
                 stopServiceIfNeeded(getString(R.string.service_stopped_due_to_cache_reset))
+                refreshPreviews()
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
@@ -311,10 +339,10 @@ class MainActivity : AppCompatActivity(),
     private fun resetSentFilesCacheForFolder(folder: Folder) {
         val sentFilesPrefs = getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
         val allEntries = sentFilesPrefs.all
-        val folderUriPrefix = folder.path
+        val folderIdPrefix = "folder_${folder.id}_"
         sentFilesPrefs.edit().apply {
             allEntries.keys.forEach { key ->
-                if (key.startsWith(folderUriPrefix)) {
+                if (key.startsWith(folderIdPrefix)) {
                     remove(key)
                 }
             }
@@ -365,19 +393,6 @@ class MainActivity : AppCompatActivity(),
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
-    fun stopServiceIfNeeded(message: String? = null) {
-        if (isServiceRunning) {
-            serviceController.stopService()
-            message?.let { LogHelper.writeLog(this, it) }
-        }
-    }
-
-    private fun updateServiceState(isRunning: Boolean) {
-        isServiceRunning = isRunning
-        binding.btnToggleService.text = if (isRunning) getString(R.string.stop_service) else getString(R.string.start_service)
-        uiUpdater.updateSettingsDisplay()
-    }
-
     private fun loadData() {
         val json = sharedPreferences.getString("folders", null)
         if (json != null) {
@@ -387,7 +402,27 @@ class MainActivity : AppCompatActivity(),
             folders.addAll(loadedFolders)
             folderAdapter.notifyDataSetChanged()
         }
-        logHelper.loadSavedLog()
+    }
+
+    private fun updateServiceState(isRunning: Boolean) {
+        isServiceRunning = isRunning
+        binding.btnToggleService.text = if (isRunning) {
+            getString(R.string.stop_service)
+        } else {
+            getString(R.string.start_service)
+        }
+    }
+
+    fun stopServiceIfNeeded(logMessage: String? = null) {
+        if (isServiceRunning) {
+            logMessage?.let { LogHelper.writeLog(this, it) }
+            serviceController.stopService()
+        }
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private fun refreshPreviews() {
+        folderAdapter.notifyDataSetChanged()
     }
 
     private fun saveFolders() {
@@ -403,17 +438,23 @@ class MainActivity : AppCompatActivity(),
         LocalBroadcastManager.getInstance(this).registerReceiver(
             serviceStateReceiver, IntentFilter("com.example.photouploaderapp.SERVICE_STATE_CHANGED")
         )
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            previewsUpdateReceiver, IntentFilter(FolderAdapter.ACTION_PREVIEWS_UPDATED)
+        )
+        logHelper.loadSavedLog()
         uiUpdater.updateSettingsDisplay()
+        refreshPreviews()
     }
 
     override fun onPause() {
         super.onPause()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(serviceStateReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(previewsUpdateReceiver)
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        binding.drawerLayout.openDrawer(GravityCompat.START)
-        return true
+    override fun onDestroy() {
+        super.onDestroy()
+        folderAdapter.onDetach()
     }
 }

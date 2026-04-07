@@ -1,6 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.UploadGram" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="textInputStyle">@style/Widget.Material3.TextInputLayout.FilledBox</item>
         <item name="colorPrimary">@color/m3_light_primary</item>
         <item name="colorOnPrimary">@color/m3_light_onPrimary</item>
         <item name="colorPrimaryContainer">@color/m3_light_primaryContainer</item>
@@ -27,7 +26,63 @@
         <item name="colorSurfaceInverse">@color/m3_light_inverseSurface</item>
         <item name="colorOnSurfaceInverse">@color/m3_light_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/m3_light_inversePrimary</item>
+
+        <!-- Customizing Material 3 Components -->
+        <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
+        <item name="materialButtonStyle">@style/Widget.Material3.Button</item>
+        <item name="floatingActionButtonStyle">@style/Widget.Material3.FloatingActionButton.Primary</item>
+        <item name="extendedFloatingActionButtonStyle">@style/Widget.Material3.ExtendedFloatingActionButton.Primary</item>
+
+        <!-- Typography -->
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.App.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.App.TitleMedium</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.App.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.App.BodyMedium</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.App.LabelLarge</item>
+
+        <!-- Navigation Drawer styling -->
+        <item name="navigationViewStyle">@style/Widget.App.NavigationView</item>
     </style>
 
     <style name="Theme.UploadGram" parent="Base.Theme.UploadGram" />
+
+    <style name="TextAppearance.App.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="TextAppearance.App.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="TextAppearance.App.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="TextAppearance.App.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <style name="TextAppearance.App.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.App.NavigationView" parent="Widget.Material3.NavigationView">
+        <item name="itemShapeAppearanceOverlay">@style/ShapeAppearance.App.NavigationView.Item</item>
+        <item name="itemShapeInsetStart">12dp</item>
+        <item name="itemShapeInsetEnd">12dp</item>
+        <item name="itemHorizontalPadding">16dp</item>
+        <item name="itemIconPadding">12dp</item>
+        <item name="itemMinHeight">56dp</item>
+        <item name="itemTextAppearance">@style/TextAppearance.App.LabelLarge</item>
+        <item name="itemIconTint">@color/nav_item_text_color</item>
+        <item name="itemTextColor">@color/nav_item_text_color</item>
+        <item name="itemBackground">@drawable/nav_item_background</item>
+    </style>
+
+    <style name="ShapeAppearance.App.NavigationView.Item" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
 </resources>

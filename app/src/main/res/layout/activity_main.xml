@@ -13,141 +13,158 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <LinearLayout
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appBarLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            app:elevation="0dp">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:title="@string/app_name"
+                app:titleCentered="true"
+                app:titleTextAppearance="@style/TextAppearance.App.TitleLarge" />
+
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-            <com.google.android.material.appbar.AppBarLayout
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewFolders"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp"
+                app:layout_constraintBottom_toTopOf="@+id/bottom_container"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:listitem="@layout/folder_item" />
+
+            <LinearLayout
+                android:id="@+id/bottom_container"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingBottom="8dp"
+                app:layout_constraintBottom_toBottomOf="parent">
 
-                <com.google.android.material.appbar.MaterialToolbar
-                    android:id="@+id/toolbar"
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/log_card"
+                    style="@style/Widget.Material3.CardView.Elevated"
                     android:layout_width="match_parent"
-                    android:layout_height="?attr/actionBarSize"
-                    app:title="@string/app_name" />
+                    android:layout_height="120dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="24dp">
 
-            </com.google.android.material.appbar.AppBarLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:padding="12dp">
 
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:text="@string/log_title"
+                            android:textAppearance="?attr/textAppearanceLabelLarge"
+                            android:textColor="?attr/colorPrimary" />
 
-                <TextView
-                    android:id="@+id/tvAppVersion"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentBottom="true"
-                    android:layout_centerHorizontal="true"
-                    android:layout_marginBottom="8dp"
-                    android:textAppearance="?attr/textAppearanceCaption"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    tools:text="Version 1.0" />
+                        <ScrollView
+                            android:id="@+id/scrollViewLog"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent">
+
+                            <TextView
+                                android:id="@+id/tvLog"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </ScrollView>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
-                    android:id="@+id/bottom_panel"
+                    android:id="@+id/controls_panel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_above="@id/tvAppVersion"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
+                    android:layout_marginBottom="12dp">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnToggleService"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="@string/start_service" />
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/start_service"
+                        app:cornerRadius="16dp" />
 
                     <Space
-                        android:layout_width="16dp"
+                        android:layout_width="12dp"
                         android:layout_height="0dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnClearLogIconButton"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/clear_log"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:padding="0dp"
+                        android:insetLeft="0dp"
+                        android:insetRight="0dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
                         android:contentDescription="@string/clear_log"
+                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_check_gray"
-                        app:iconTint="?attr/colorOnSurfaceVariant" />
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="24dp" />
 
                 </LinearLayout>
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/log_card"
-                    android:layout_width="match_parent"
-                    android:layout_height="150dp"
-                    android:layout_above="@id/bottom_panel"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="8dp"
-                    app:cardElevation="2dp">
-
-                    <ScrollView
-                        android:id="@+id/scrollViewLog"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent">
-
-                        <TextView
-                            android:id="@+id/tvLog"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:padding="8dp"
-                            android:text="@string/log_title"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurface" />
-                    </ScrollView>
-
-                </com.google.android.material.card.MaterialCardView>
-
                 <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
                     android:id="@+id/btnAddFolderIconButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_above="@id/log_card"
-                    android:layout_alignParentEnd="true"
+                    android:layout_marginStart="16dp"
                     android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center"
                     android:text="@string/add_folder_fab"
                     app:icon="@drawable/ic_add"
-                    app:iconTint="?attr/colorOnPrimaryContainer"
-                    app:backgroundTint="?attr/colorPrimaryContainer"
-                    android:textColor="?attr/colorOnPrimaryContainer"
-                    />
+                    app:iconGravity="textStart" />
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/folders_container"
+                <TextView
+                    android:id="@+id/tvAppVersion"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_above="@id/btnAddFolderIconButton"
-                    android:layout_alignParentTop="true"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="8dp"
-                    app:cardBackgroundColor="?attr/colorSurface"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="0dp">
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:paddingBottom="8dp"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="Version 1.0" />
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/recyclerViewFolders"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clipToPadding="false"
-                        android:padding="0dp"
-                        tools:listitem="@layout/folder_item" />
+            </LinearLayout>
 
-                </com.google.android.material.card.MaterialCardView>
-
-            </RelativeLayout>
-        </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
@@ -156,10 +173,15 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:clickable="true"
-        android:focusable="true"
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/drawer_header"
-        app:menu="@menu/drawer_menu" />
+        app:menu="@menu/drawer_menu"
+        app:itemShapeAppearanceOverlay="@style/ShapeAppearance.App.NavigationView.Item"
+        app:itemHorizontalPadding="16dp"
+        app:itemIconPadding="16dp"
+        app:itemVerticalPadding="8dp"
+        app:itemIconTint="@color/nav_item_text_color"
+        app:itemTextColor="@color/nav_item_text_color"
+        app:itemBackground="@drawable/nav_item_background" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
