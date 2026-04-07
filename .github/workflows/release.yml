@@ -3,8 +3,8 @@ name: Build & Release APK
 on:
   push:
     branches:
-      branches: [ master ]
-      tags: [ 'v*' ]
+      - mastertags:
+      - 'v*'
 
 jobs:
   build:
@@ -23,12 +23,14 @@ jobs:
           cache: gradle
 
       - name: Decode Keystore
+        # Декодируем секрет SIGNING_KEY во временный файл в корне проекта
         run: echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > release-key.jks
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
+        # Передаем переменные окружения, которые мы настроили в build.gradle.kts
         run: ./gradlew clean assembleRelease
         env:
           SIGNING_STORE_FILE: ../release-key.jks
