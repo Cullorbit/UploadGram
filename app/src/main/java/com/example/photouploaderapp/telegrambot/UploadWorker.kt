@@ -53,7 +53,8 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
                 chatId = chatId,
                 topicId = topicId,
                 file = cachedFile,
-                fileName = originalFileName
+                fileName = originalFileName,
+                proxyUrl = settingsManager.proxyUrl
             )
 
             cachedFile.delete()

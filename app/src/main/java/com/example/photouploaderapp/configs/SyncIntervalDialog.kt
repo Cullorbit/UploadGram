@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit
 
 class SyncIntervalDialog(private val settingsManager: SettingsManager) : DialogFragment() {
 
+    private var tempInterval: Long = 0
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val intervals = arrayOf(
             getString(R.string.fifteen_minutes),
@@ -17,21 +19,24 @@ class SyncIntervalDialog(private val settingsManager: SettingsManager) : DialogF
             getString(R.string.one_hour),
             getString(R.string.two_hours)
         )
-        val currentInterval = getIntervalIndex(settingsManager.syncInterval)
+        tempInterval = settingsManager.syncInterval
+        val currentIntervalIndex = getIntervalIndex(tempInterval)
 
         return MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.sync_interval))
-            .setSingleChoiceItems(intervals, currentInterval) { _, which ->
-                val interval = getIntervalInMillis(which)
-                if (settingsManager.syncInterval != interval) {
-                    settingsManager.syncInterval = interval
+            .setSingleChoiceItems(intervals, currentIntervalIndex) { _, which ->
+                tempInterval = getIntervalInMillis(which)
+            }
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                if (settingsManager.syncInterval != tempInterval) {
+                    settingsManager.syncInterval = tempInterval
                     (activity as? MainActivity)?.let {
                         UIUpdater(it, settingsManager).updateSettingsDisplay()
                         it.stopServiceIfNeeded()
                     }
                 }
             }
-            .setPositiveButton(getString(R.string.save)) { dialog, _ ->
+            .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
                 dialog.dismiss()
             }
             .create()

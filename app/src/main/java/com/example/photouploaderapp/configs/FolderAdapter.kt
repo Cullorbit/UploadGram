@@ -277,23 +277,33 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
                 return Pair(result, totalCount)
             }
 
-            val displayLimit = 4
-            val filesToShow = if (totalCount > displayLimit) validFiles.take(3) else validFiles
+            val displayLimit = calculateDisplayLimit(context)
 
-            filesToShow.forEach { fileInfo ->
-                val bitmap = loadFileThumbnailFast(context, fileInfo.uri, fileInfo.isVideo)
-                result.add(PreviewData(identifier = fileInfo.identifier, bitmap = bitmap))
-            }
-
-            if (totalCount > displayLimit) {
-                result.add(PreviewData(identifier = "more_count", isCountOnly = true, count = totalCount - 3))
-            } else if (totalCount == displayLimit && result.size < 4) {
-                val lastOne = validFiles[3]
-                val bitmap = loadFileThumbnailFast(context, lastOne.uri, lastOne.isVideo)
-                result.add(PreviewData(identifier = lastOne.identifier, bitmap = bitmap))
+            if (totalCount <= displayLimit) {
+                validFiles.forEach { fileInfo ->
+                    val bitmap = loadFileThumbnailFast(context, fileInfo.uri, fileInfo.isVideo)
+                    result.add(PreviewData(identifier = fileInfo.identifier, bitmap = bitmap))
+                }
+            } else {
+                validFiles.take(displayLimit - 1).forEach { fileInfo ->
+                    val bitmap = loadFileThumbnailFast(context, fileInfo.uri, fileInfo.isVideo)
+                    result.add(PreviewData(identifier = fileInfo.identifier, bitmap = bitmap))
+                }
+                result.add(PreviewData(identifier = "more_count", isCountOnly = true, count = totalCount - (displayLimit - 1)))
             }
 
             return Pair(result, totalCount)
+        }
+
+        private fun calculateDisplayLimit(context: Context): Int {
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidthDp = displayMetrics.widthPixels / displayMetrics.density
+            // Учитываем: 16dp (отступ карточки) * 2 + 16dp (внутренний padding) * 2 = 64dp
+            // Мы добавили negative margin -8dp для ScrollView, поэтому эффективная доступная ширина на 8dp больше.
+            val availableWidthDp = (screenWidthDp - 64) + 8
+            // Каждая плитка: 48dp (ширина) + 8dp (отступ справа) = 56dp
+            val limit = (availableWidthDp / 56).toInt()
+            return limit.coerceAtLeast(2)
         }
 
         private fun loadFileThumbnailFast(context: Context, uri: Uri, isVideo: Boolean): Bitmap? {

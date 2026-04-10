@@ -2,6 +2,8 @@
     <string name="app_name">UploadGram</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="tab_folders">Folders</string>
+    <string name="tab_log">Log</string>
     <string name="start_service">Start</string>
     <string name="stop_service">Stop</string>
     <string name="log_title">Event Log</string>
@@ -14,10 +16,13 @@
         <item>@string/only_audio</item>
     </string-array>
     <string-array name="log_filters">
-        <item>All</item>
-        <item>Successful</item>
-        <item>Errors</item>
+        <item>@string/all_logs</item>
+        <item>@string/success_logs</item>
+        <item>@string/error_logs</item>
     </string-array>
+    <string name="all_logs">All</string>
+    <string name="success_logs">Successful</string>
+    <string name="error_logs">Errors</string>
     <string name="folder">Folder</string>
     <string name="folder_changes_detected">Folder changes detected. Service stopped.</string>
     <string name="configure_bot_token_chat_id">First, configure Bot Token and Chat ID in settings.</string>
@@ -100,6 +105,17 @@
     <string name="system_log_name">SYSTEM</string>
     <string name="log_skipping_hidden_file">Skipping hidden file: %1$s</string>
     <string name="manual">User Guide</string>
+    <string name="app_theme">App Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="proxy_url">Telegram Bot Proxy URL</string>
+    <string name="set_proxy_url">Telegram Bot Proxy URL</string>
+    <string name="enter_proxy_url">Enter your proxy URL</string>
+    <string name="default_button">Default</string>
+    <string name="proxy_url_description">A custom telegram-bot-api server allows sending files up to 2 GB. Standard Telegram limit is 50 MB.</string>
+    <string name="proxy_url_default_toast">Telegram bot api server set to default.</string>
+    <string name="invalid_url_format">Invalid URL format (must start with http:// or https://)</string>
 
     <string name="cache_settings">Cache Settings</string>
     <string name="cache_limit">File Cache Limit</string>

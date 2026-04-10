@@ -39,6 +39,14 @@ class SettingsManager(private val context: Context) {
         get() = sharedPreferences.getLong("cache_limit", 2L * 1024 * 1024 * 1024)
         set(value) = sharedPreferences.edit { putLong("cache_limit", value) }
 
+    var proxyUrl: String
+        get() = sharedPreferences.getString("KEY_PROXY_URL", "https://telegram-bot-api-latest-wuhf.onrender.com") ?: "https://telegram-bot-api-latest-wuhf.onrender.com"
+        set(value) = sharedPreferences.edit { putString("KEY_PROXY_URL", value) }
+
+    var themeMode: Int
+        get() = sharedPreferences.getInt("KEY_THEME_MODE", androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        set(value) = sharedPreferences.edit { putInt("KEY_THEME_MODE", value) }
+
     fun clearSettings() {
         sharedPreferences.edit { clear() }
     }

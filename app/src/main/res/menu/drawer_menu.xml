@@ -3,64 +3,58 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:showIn="navigation_view">
 
-    <group android:id="@+id/group_settings" android:checkableBehavior="none">
-        <item
-            android:id="@+id/header_main_settings"
-            android:title="@string/settings" >
-            <menu>
-                <item
-                    android:id="@+id/menu_select_bot_token"
-                    android:icon="@drawable/ic_bot_token"
-                    android:title="@string/set_bot_token" />
-                <item
-                    android:id="@+id/menu_select_chat"
-                    android:icon="@drawable/ic_chat_id"
-                    android:title="@string/set_chat_id" />
-            </menu>
-        </item>
-    </group>
+    <item android:title="@string/settings">
+        <menu>
+            <item
+                android:id="@+id/menu_select_bot_token"
+                android:icon="@drawable/ic_bot_token"
+                android:title="@string/set_bot_token" />
+            <item
+                android:id="@+id/menu_select_chat"
+                android:icon="@drawable/ic_chat_id"
+                android:title="@string/set_chat_id" />
+        </menu>
+    </item>
 
-    <group android:id="@+id/group_sync" android:checkableBehavior="none">
-        <item
-            android:id="@+id/header_sync_settings"
-            android:title="@string/sync_settings">
-            <menu>
-                <item
-                    android:id="@+id/menu_sync_options"
-                    android:icon="@drawable/ic_sync"
-                    android:title="@string/synchronization" />
-                <item
-                    android:id="@+id/menu_sync_interval_set"
-                    android:icon="@drawable/ic_timer"
-                    android:title="@string/set_sync_interval" />
-            </menu>
-        </item>
-    </group>
+    <item android:title="@string/sync_settings">
+        <menu>
+            <item
+                android:id="@+id/menu_sync_options"
+                android:icon="@drawable/ic_sync"
+                android:title="@string/synchronization" />
+            <item
+                android:id="@+id/menu_sync_interval_set"
+                android:icon="@drawable/ic_timer"
+                android:title="@string/set_sync_interval" />
+            <item
+                android:id="@+id/menu_proxy_url"
+                android:icon="@drawable/ic_api_proxy"
+                android:title="@string/proxy_url" />
+        </menu>
+    </item>
 
-    <group android:id="@+id/group_cache" android:checkableBehavior="none">
-        <item
-            android:id="@+id/header_cache_settings"
-            android:title="@string/cache_settings">
-            <menu>
-                <item
-                    android:id="@+id/menu_cache_limit"
-                    android:icon="@drawable/ic_sync_interval"
-                    android:title="@string/cache_limit" />
-            </menu>
-        </item>
-    </group>
+    <item android:title="@string/cache_settings">
+        <menu>
+            <item
+                android:id="@+id/menu_cache_limit"
+                android:icon="@drawable/ic_sync_interval"
+                android:title="@string/cache_limit" />
+        </menu>
+    </item>
 
-    <group android:id="@+id/group_help" android:checkableBehavior="none">
+    <group android:id="@+id/group_bottom_actions">
+        <item
+            android:id="@+id/menu_app_theme"
+            android:icon="@drawable/ic_theme_toggle"
+            android:title="@string/app_theme" />
         <item
             android:id="@+id/menu_manual"
             android:icon="@drawable/ic_manual"
             android:title="@string/manual" />
-    </group>
-
-    <group android:id="@+id/reset_group" android:checkableBehavior="none">
         <item
             android:id="@+id/menu_reset_settings"
             android:icon="@drawable/ic_reset"
             android:title="@string/reset_app_settings" />
     </group>
+
 </menu>

@@ -51,12 +51,51 @@ class NavigationHandler(
                 activity.showSyncIntervalDialog()
                 true
             }
+            R.id.menu_proxy_url -> {
+                showProxyUrlDialog()
+                true
+            }
             R.id.menu_manual -> {
                 openManual()
                 true
             }
+            R.id.menu_app_theme -> {
+                showThemeDialog()
+                true
+            }
             else -> false
         }
+    }
+
+    private fun showThemeDialog() {
+        val themes = arrayOf(
+            activity.getString(R.string.theme_system),
+            activity.getString(R.string.theme_light),
+            activity.getString(R.string.theme_dark)
+        )
+        
+        val themeValues = arrayOf(
+            androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
+            androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO,
+            androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+        )
+
+        val currentTheme = settingsManager.themeMode
+        val checkedItem = themeValues.indexOf(currentTheme).coerceAtLeast(0)
+
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(activity.getString(R.string.app_theme))
+            .setSingleChoiceItems(themes, checkedItem) { dialog, which ->
+                val selectedMode = themeValues[which]
+                if (selectedMode != settingsManager.themeMode) {
+                    settingsManager.themeMode = selectedMode
+                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(selectedMode)
+                    activity.recreate() // Пересоздаем активность для применения темы
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton(activity.getString(R.string.cancel), null)
+            .show()
     }
 
     private fun showInputDialog(title: String, hint: String, key: String, currentValue: String?) {
@@ -103,25 +142,75 @@ class NavigationHandler(
     private fun showSyncOptionsDialog() {
         val options = arrayOf(activity.getString(R.string.wifi_only), activity.getString(R.string.wifi_and_mobile_data))
         val currentOption = settingsManager.syncOption
+        var tempOption = currentOption
         val checkedItem = when (currentOption) {
             "wifi_only" -> 0
             else -> 1
         }
         MaterialAlertDialogBuilder(activity)
             .setTitle(activity.getString(R.string.synchronization))
-            .setSingleChoiceItems(options, checkedItem) { dialog, which ->
-                val newOption = if (which == 0) "wifi_only" else "wifi_and_mobile"
-                if (settingsManager.syncOption != newOption) {
-                    settingsManager.syncOption = newOption
+            .setSingleChoiceItems(options, checkedItem) { _, which ->
+                tempOption = if (which == 0) "wifi_only" else "wifi_and_mobile"
+            }
+            .setPositiveButton(activity.getString(R.string.save)) { _, _ ->
+                if (settingsManager.syncOption != tempOption) {
+                    settingsManager.syncOption = tempOption
                     uiUpdater.updateSettingsDisplay()
                     activity.stopServiceIfNeeded()
                 }
-                dialog.dismiss()
             }
             .setNegativeButton(activity.getString(R.string.cancel)) { dialog, _ ->
                 dialog.cancel()
             }
             .show()
+    }
+
+    private fun showProxyUrlDialog() {
+        val binding = DialogGenericInputBinding.inflate(LayoutInflater.from(activity))
+        binding.textInputLayout.hint = activity.getString(R.string.enter_proxy_url)
+        
+        // Показываем описание сверху над полем ввода
+        binding.tvDescription.visibility = android.view.View.VISIBLE
+        binding.tvDescription.text = activity.getString(R.string.proxy_url_description)
+
+        // Показываем URL только если он не совпадает со значением по умолчанию
+        val currentUrl = settingsManager.proxyUrl
+        val defaultUrl = "https://telegram-bot-api-latest-wuhf.onrender.com"
+        
+        if (currentUrl != defaultUrl) {
+            binding.editTextField.setText(currentUrl)
+        }
+
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(activity.getString(R.string.set_proxy_url))
+            .setView(binding.root)
+            .setNeutralButton(activity.getString(R.string.default_button)) { _, _ ->
+                settingsManager.proxyUrl = defaultUrl
+                uiUpdater.updateSettingsDisplay()
+                activity.showToast(activity.getString(R.string.proxy_url_default_toast))
+                activity.stopServiceIfNeeded()
+            }
+            .setPositiveButton(activity.getString(R.string.save), null) // Устанавливаем null, чтобы переопределить поведение ниже
+            .setNegativeButton(activity.getString(R.string.cancel), null)
+            .show()
+            .apply {
+                // Переопределяем кнопку "Сохранить", чтобы диалог не закрывался при ошибке валидации
+                getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val inputText = binding.editTextField.text.toString().trim()
+                    
+                    if (inputText.isEmpty()) {
+                        binding.textInputLayout.error = activity.getString(R.string.field_cannot_be_empty)
+                    } else if (!inputText.startsWith("http://") && !inputText.startsWith("https://")) {
+                        binding.textInputLayout.error = activity.getString(R.string.invalid_url_format)
+                    } else {
+                        settingsManager.proxyUrl = inputText
+                        uiUpdater.updateSettingsDisplay()
+                        activity.showToast(activity.getString(R.string.setting_saved))
+                        activity.stopServiceIfNeeded()
+                        dismiss()
+                    }
+                }
+            }
     }
 
     private fun openManual() {

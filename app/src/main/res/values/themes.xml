@@ -73,9 +73,11 @@
         <item name="itemHorizontalPadding">16dp</item>
         <item name="itemIconPadding">12dp</item>
         <item name="itemMinHeight">56dp</item>
-        <item name="itemTextAppearance">@style/TextAppearance.App.LabelLarge</item>
-        <item name="itemIconTint">@color/nav_selected_text</item>
-        <item name="itemTextColor">@color/nav_selected_text</item>
+        <item name="itemIconTint">@color/nav_item_text_color</item>
+        <item name="itemTextColor">@color/nav_item_text_color</item>
+        <item name="itemBackground">@color/nav_item_bg_color</item>
+        <item name="headerLayout">@layout/drawer_header</item>
+        <item name="android:background">?attr/colorSurface</item>
     </style>
 
     <style name="ShapeAppearance.App.NavigationView.Item" parent="">

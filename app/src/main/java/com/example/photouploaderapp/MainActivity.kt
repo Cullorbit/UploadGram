@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.photouploaderapp.configs.AddFolderDialog
@@ -37,6 +38,12 @@ import com.example.photouploaderapp.configs.UIUpdater
 import com.example.photouploaderapp.configs.SyncIntervalDialog
 import com.example.photouploaderapp.databinding.ActivityMainBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONArray
 import kotlin.math.abs
 
 class MainActivity : AppCompatActivity(),
@@ -85,7 +92,6 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    // Ресивер для обновления превью
     private val previewsUpdateReceiver = object : BroadcastReceiver() {
         @SuppressLint("NotifyDataSetChanged")
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -110,6 +116,7 @@ class MainActivity : AppCompatActivity(),
         setupRecyclerView()
         setupListeners()
         setupAppVersion()
+        checkForUpdates()
         loadData()
         initGestureDetector()
 
@@ -228,6 +235,29 @@ class MainActivity : AppCompatActivity(),
             true
         }
 
+        binding.tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                when (tab?.position) {
+                    0 -> {
+                        binding.recyclerViewFolders.visibility = android.view.View.VISIBLE
+                        binding.logCard.visibility = android.view.View.GONE
+                        binding.btnAddFolderIconButton.visibility = android.view.View.VISIBLE
+                        binding.btnClearLogIconButton.visibility = android.view.View.GONE
+                        binding.buttonSpacer.visibility = android.view.View.GONE
+                    }
+                    1 -> {
+                        binding.recyclerViewFolders.visibility = android.view.View.GONE
+                        binding.logCard.visibility = android.view.View.VISIBLE
+                        binding.btnAddFolderIconButton.visibility = android.view.View.GONE
+                        binding.btnClearLogIconButton.visibility = android.view.View.VISIBLE
+                        binding.buttonSpacer.visibility = android.view.View.VISIBLE
+                    }
+                }
+            }
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+        })
+
         binding.btnAddFolderIconButton.setOnClickListener { showAddFolderDialog() }
         binding.btnClearLogIconButton.setOnClickListener { logHelper.clearLog() }
 
@@ -259,11 +289,75 @@ class MainActivity : AppCompatActivity(),
         try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
             val versionName = packageInfo.versionName
+
             val headerView = binding.navigationView.getHeaderView(0)
-            val tvVersion = headerView.findViewById<android.widget.TextView>(R.id.tvAppVersion)
-            tvVersion?.text = "UploadGram Version: $versionName"
+            val tvHeaderVersion = headerView.findViewById<android.widget.TextView>(R.id.tvAppVersion)
+            tvHeaderVersion?.text = "UploadGram v$versionName"
+
+            binding.tvAppVersion.text = "UploadGram v$versionName"
         } catch (e: Exception) {
             Log.e("MainActivity", "Couldn't get app version", e)
+        }
+    }
+
+    private fun checkForUpdates() {
+        val currentVersion = try {
+            packageManager.getPackageInfo(packageName, 0).versionName
+        } catch (e: Exception) {
+            null
+        } ?: "0.0.0"
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val request = Request.Builder()
+                    .url("https://api.github.com/repos/Cullorbit/UploadGram/tags")
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@launch
+
+                    val jsonData = response.body?.string() ?: return@launch
+                    val jsonArray = JSONArray(jsonData)
+                    if (jsonArray.length() > 0) {
+                        val latestTag = jsonArray.getJSONObject(0).getString("name")
+                        val cleanLatestTag = latestTag.trimStart('v')
+
+                        if (isNewerVersion(currentVersion, cleanLatestTag)) {
+                            withContext(Dispatchers.Main) {
+                                showUpdateAvailable(latestTag)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Update check failed", e)
+            }
+        }
+    }
+
+    private fun isNewerVersion(current: String, latest: String): Boolean {
+        val currentParts = current.split(".").mapNotNull { it.toIntOrNull() }
+        val latestParts = latest.split(".").mapNotNull { it.toIntOrNull() }
+
+        val length = maxOf(currentParts.size, latestParts.size)
+        for (i in 0 until length) {
+            val curr = currentParts.getOrElse(i) { 0 }
+            val lat = latestParts.getOrElse(i) { 0 }
+            if (lat > curr) return true
+            if (lat < curr) return false
+        }
+        return false
+    }
+
+    private fun showUpdateAvailable(latestVersion: String) {
+        binding.tvAppVersion.apply {
+            text = "Доступно обновление. UploadGram $latestVersion"
+            setTextColor(ContextCompat.getColor(context, android.R.color.holo_blue_dark))
+            setOnClickListener {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Cullorbit/UploadGram/releases"))
+                startActivity(intent)
+            }
         }
     }
 
@@ -377,14 +471,19 @@ class MainActivity : AppCompatActivity(),
         val limitValues = arrayOf(0L, 2L, 5L, 16L).map { it * 1024 * 1024 * 1024 }
         
         val currentLimit = settingsManager.cacheLimit
+        var tempLimit = currentLimit
         val checkedItem = limitValues.indexOf(currentLimit).coerceAtLeast(0)
 
         MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.cache_limit))
-            .setSingleChoiceItems(limits, checkedItem) { dialog, which ->
-                settingsManager.cacheLimit = limitValues[which]
-                uiUpdater.updateSettingsDisplay()
-                dialog.dismiss()
+            .setSingleChoiceItems(limits, checkedItem) { _, which ->
+                tempLimit = limitValues[which]
+            }
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                if (settingsManager.cacheLimit != tempLimit) {
+                    settingsManager.cacheLimit = tempLimit
+                    uiUpdater.updateSettingsDisplay()
+                }
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()

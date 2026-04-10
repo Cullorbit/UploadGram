@@ -15,7 +15,6 @@ object TelegramApi {
 
     private val networkSemaphore = Semaphore(1)
     private const val TELEGRAM_LIMIT = 49 * 1024 * 1024
-    private const val RENDER_PROXY_URL = "https://telegram-bot-api-latest-wuhf.onrender.com"
     private val client = NetworkClient.client
 
     suspend fun sendDocument(
@@ -23,13 +22,14 @@ object TelegramApi {
         chatId: String,
         topicId: Int?,
         file: File,
-        fileName: String
+        fileName: String,
+        proxyUrl: String
     ): Pair<Boolean, String?> {
 
         networkSemaphore.acquire()
         try {
             val isLargeFile = file.length() > TELEGRAM_LIMIT
-            val baseUrl = if (isLargeFile) RENDER_PROXY_URL else "https://api.telegram.org"
+            val baseUrl = if (isLargeFile) proxyUrl else "https://api.telegram.org"
 
             var result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, false)
 
