@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="sync_options_entries">
+        <item>@string/wifi_only</item>
+        <item>@string/wifi_and_mobile_data</item>
+    </string-array>
+    <string-array name="sync_options_values">
+        <item>wifi_only</item>
+        <item>wifi_and_mobile</item>
+    </string-array>
+
+    <string-array name="sync_interval_entries">
+        <item>@string/fifteen_minutes</item>
+        <item>@string/thirty_minutes</item>
+        <item>@string/one_hour</item>
+        <item>@string/two_hours</item>
+    </string-array>
+    <string-array name="sync_interval_values">
+        <item>900000</item>
+        <item>1800000</item>
+        <item>3600000</item>
+        <item>7200000</item>
+    </string-array>
+
+    <string-array name="cache_limit_entries">
+        <item>@string/cache_unlimited</item>
+        <item>2 GB</item>
+        <item>5 GB</item>
+        <item>16 GB</item>
+    </string-array>
+    <string-array name="cache_limit_values">
+        <item>0</item>
+        <item>2147483648</item>
+        <item>5368709120</item>
+        <item>17179869184</item>
+    </string-array>
+
+    <string-array name="theme_entries">
+        <item>@string/theme_system</item>
+        <item>@string/theme_light</item>
+        <item>@string/theme_dark</item>
+    </string-array>
+    <string-array name="theme_values">
+        <item>-1</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+</resources>

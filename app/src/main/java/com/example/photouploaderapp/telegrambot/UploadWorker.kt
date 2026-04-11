@@ -33,7 +33,12 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
 
         val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
         if (sentFilesPrefs.contains(fileIdentifier)) {
-            Log.i(TAG, "File $originalFileName already sent, skipping.")
+            return Result.success()
+        }
+
+        val excludedFilesPrefs = context.getSharedPreferences("ExcludedFiles", Context.MODE_PRIVATE)
+        if (excludedFilesPrefs.contains(fileIdentifier)) {
+            Log.d(TAG, "File $originalFileName is excluded from sync")
             return Result.success()
         }
 
@@ -42,7 +47,7 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
 
             val cachedFile = createCacheFileFromUri(fileUriString.toUri(), originalFileName)
             if (cachedFile == null) {
-                LogHelper.writeLog(context, "ОШИБКА КЭШИРОВАНИЯ: $originalFileName", folderName)
+                LogHelper.writeLog(context, context.getString(R.string.error_caching, originalFileName), folderName)
                 return Result.failure()
             }
 
@@ -60,33 +65,30 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
             cachedFile.delete()
 
             if (isSuccess) {
-                Log.d(TAG, "Work SUCCESS for $originalFileName")
                 LogHelper.writeLog(context, context.getString(R.string.file_sent_successfully, originalFileName), folderName)
                 markFileAsSent(context, fileIdentifier)
                 
-                // Уведомляем UI о том, что файл отправлен и превью нужно обновить
                 val intent = Intent(FolderAdapter.ACTION_PREVIEWS_UPDATED)
                 LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
                 
                 return Result.success()
             } else {
-                Log.w(TAG, "Work FAILURE for $originalFileName. Reason: $errorMessage")
-                
                 val finalErrorMessage = if (errorMessage?.contains("timeout", ignoreCase = true) == true) {
                     context.getString(R.string.error_timeout)
+                } else if (errorMessage == "ERROR_THREAD_NOT_FOUND") {
+                    notifyTopicError(folderName)
+                    context.getString(R.string.error_topic_not_found_message, folderName)
                 } else {
                     errorMessage ?: context.getString(R.string.error_sending_file_queued, originalFileName)
                 }
                 
                 LogHelper.writeLog(context, finalErrorMessage, folderName)
-                return Result.retry()
+                return if (errorMessage == "ERROR_THREAD_NOT_FOUND") Result.failure() else Result.retry()
             }
         } catch (e: CancellationException) {
-            Log.i(TAG, "Work cancelled for $originalFileName")
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error in UploadWorker", e)
-            LogHelper.writeLog(context, "Error: ${e.message}", folderName)
+            LogHelper.writeLog(context, context.getString(R.string.error_generic_with_desc, e.message), folderName)
             return Result.retry()
         }
     }
@@ -126,7 +128,6 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
             }
             tempFile
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create cache file from URI", e)
             null
         }
     }
@@ -134,6 +135,11 @@ class UploadWorker(private val context: Context, params: WorkerParameters) : Cor
     private fun markFileAsSent(context: Context, identifier: String) {
         val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
         sentFilesPrefs.edit { putBoolean(identifier, true) }
-        Log.d(TAG, "File marked as sent: $identifier")
+    }
+
+    private fun notifyTopicError(folderName: String) {
+        val intent = Intent("com.example.photouploaderapp.TOPIC_ERROR")
+        intent.putExtra("folder_name", folderName)
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
     }
 }

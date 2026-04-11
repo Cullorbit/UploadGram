@@ -1,57 +1,85 @@
 package com.example.photouploaderapp.configs
 
 import android.content.Context
-import androidx.core.content.edit
+import android.content.SharedPreferences
 
 class SettingsManager(private val context: Context) {
 
-    internal val sharedPreferences by lazy {
-        context.getSharedPreferences("TelegramSettings", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("Settings", Context.MODE_PRIVATE)
+
+    companion object {
+        const val DEFAULT_PROXY_URL = "https://telegram-bot-api-latest-wuhf.onrender.com"
+        const val INTERNAL_AUTH_BOT_TOKEN = "7625036152:AAGwAFfyR4O6PQiKGEQhzK3U0dLDyER_f94"
     }
 
-    var selectedMediaType: String
-        get() = sharedPreferences.getString("KEY_MEDIA_TYPE", "Все") ?: "Все"
-        set(value) {
-            sharedPreferences.edit().putString("KEY_MEDIA_TYPE", value).apply()
-        }
+    var botToken: String
+        get() = prefs.getString("bot_token", "")?.ifBlank { INTERNAL_AUTH_BOT_TOKEN } ?: INTERNAL_AUTH_BOT_TOKEN
+        set(value) = prefs.edit().putString("bot_token", value).apply()
 
-    var syncInterval: Long
-        get() = sharedPreferences.getLong("sync_interval", 15 * 60 * 1000)
-        set(value) = sharedPreferences.edit { putLong("sync_interval", value) }
-
-    var botToken: String?
-        get() = sharedPreferences.getString("KEY_BOT_TOKEN", null)
-        set(value) = sharedPreferences.edit { putString("KEY_BOT_TOKEN", value) }
+    fun getRawBotToken(): String? = prefs.getString("bot_token", null)
 
     var chatId: String?
-        get() = sharedPreferences.getString("KEY_CHAT", null)
-        set(value) = sharedPreferences.edit { putString("KEY_CHAT", value) }
+        get() = prefs.getString("chat_id", null)
+        set(value) = prefs.edit().putString("chat_id", value).apply()
 
-    var syncOption: String
-        get() = sharedPreferences.getString("sync_option", "wifi_and_mobile") ?: "wifi_and_mobile"
-        set(value) = sharedPreferences.edit { putString("sync_option", value) }
-
-    var isServiceRunning: Boolean
-        get() = sharedPreferences.getBoolean("is_service_running", false)
-        set(value) = sharedPreferences.edit { putBoolean("is_service_running", value) }
-
-    var cacheLimit: Long
-        get() = sharedPreferences.getLong("cache_limit", 2L * 1024 * 1024 * 1024)
-        set(value) = sharedPreferences.edit { putLong("cache_limit", value) }
+    var chatTitle: String?
+        get() = prefs.getString("chat_title", null)
+        set(value) = prefs.edit().putString("chat_title", value).apply()
 
     var proxyUrl: String
-        get() = sharedPreferences.getString("KEY_PROXY_URL", "https://telegram-bot-api-latest-wuhf.onrender.com") ?: "https://telegram-bot-api-latest-wuhf.onrender.com"
-        set(value) = sharedPreferences.edit { putString("KEY_PROXY_URL", value) }
+        get() = prefs.getString("proxy_url", DEFAULT_PROXY_URL).let {
+            if (it.isNullOrBlank()) DEFAULT_PROXY_URL else it
+        }
+        set(value) = prefs.edit().putString("proxy_url", value).apply()
+
+    fun getRawProxyUrl(): String? = prefs.getString("proxy_url", null)
+
+    var syncIntervalMinutes: Int
+        get() {
+            return try {
+                prefs.getString("sync_interval", "15")?.toInt() ?: 15
+            } catch (e: Exception) {
+                15
+            }
+        }
+        set(value) = prefs.edit().putString("sync_interval", value.toString()).apply()
+
+    var isWifiOnly: Boolean
+        get() = prefs.getBoolean("wifi_only", true)
+        set(value) = prefs.edit().putBoolean("wifi_only", value).apply()
 
     var themeMode: Int
-        get() = sharedPreferences.getInt("KEY_THEME_MODE", androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-        set(value) = sharedPreferences.edit { putInt("KEY_THEME_MODE", value) }
+        get() {
+            return try {
+                prefs.getString("theme_mode", "-1")?.toInt() ?: -1
+            } catch (e: Exception) {
+                -1
+            }
+        }
+        set(value) = prefs.edit().putString("theme_mode", value.toString()).apply()
+
+    var cacheLimit: Long
+        get() {
+            return try {
+                prefs.getString("cache_limit", "0")?.toLong() ?: 0L
+            } catch (e: Exception) {
+                0L
+            }
+        }
+        set(value) = prefs.edit().putString("cache_limit", value.toString()).apply()
+
+    var selectedMediaType: String?
+        get() = prefs.getString("selected_media_type", null)
+        set(value) = prefs.edit().putString("selected_media_type", value).apply()
+
+    var isServiceRunning: Boolean
+        get() = prefs.getBoolean("is_service_running", false)
+        set(value) = prefs.edit().putBoolean("is_service_running", value).apply()
 
     fun clearSettings() {
-        sharedPreferences.edit { clear() }
-    }
-
-    fun saveSetting(key: String, value: String) {
-        sharedPreferences.edit { putString(key, value) }
+        prefs.edit().clear().apply()
+        context.getSharedPreferences("Folders", Context.MODE_PRIVATE).edit().clear().apply()
+        context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE).edit().clear().apply()
+        context.getSharedPreferences("AppLog", Context.MODE_PRIVATE).edit().clear().apply()
     }
 }

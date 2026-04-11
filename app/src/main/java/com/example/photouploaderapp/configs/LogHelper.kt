@@ -12,28 +12,32 @@ import java.util.Locale
 
 class LogHelper(
     private val context: Context,
-    private val tvLog: TextView,
-    private val scrollViewLog: ScrollView
+    private var tvLog: TextView? = null,
+    private var scrollViewLog: ScrollView? = null
 ) {
     private val logPrefs by lazy {
         context.getSharedPreferences("AppLog", Context.MODE_PRIVATE)
     }
 
+    fun updateViews(tvLog: TextView, scrollViewLog: ScrollView) {
+        this.tvLog = tvLog
+        this.scrollViewLog = scrollViewLog
+        loadSavedLog()
+    }
+
     fun loadSavedLog() {
         val savedLog = logPrefs.getString("log_content", "")
-        tvLog.text = if (savedLog.isNullOrEmpty()) "" else savedLog
+        tvLog?.text = if (savedLog.isNullOrEmpty()) "" else savedLog
         scrollToBottom()
     }
 
-    /**
-     * Добавляет одну строку в UI без полной перезагрузки всего лога из SharedPreferences.
-     * Это решает проблему "зависания" интерфейса при большом количестве сообщений.
-     */
     fun appendLog(message: String) {
-        val currentText = tvLog.text.toString()
-        val prefix = if (currentText.isEmpty()) "" else "\n\n"
-        tvLog.append("$prefix$message")
-        scrollToBottom()
+        tvLog?.let { tv ->
+            val currentText = tv.text.toString()
+            val prefix = if (currentText.isEmpty()) "" else "\n\n"
+            tv.append("$prefix$message")
+            scrollToBottom()
+        }
     }
 
     fun log(message: String) {
@@ -42,22 +46,18 @@ class LogHelper(
 
     fun clearLog() {
         logPrefs.edit().clear().apply()
-        tvLog.text = context.getString(R.string.log_cleared)
+        tvLog?.text = context.getString(R.string.log_cleared)
         scrollToBottom()
     }
 
     private fun scrollToBottom() {
-        scrollViewLog.post { scrollViewLog.fullScroll(ScrollView.FOCUS_DOWN) }
+        scrollViewLog?.post { scrollViewLog?.fullScroll(ScrollView.FOCUS_DOWN) }
     }
 
     companion object {
         const val ACTION_LOG_UPDATED = "com.example.photouploaderapp.LOG_UPDATED"
         const val EXTRA_MESSAGE = "extra_log_message"
 
-        /**
-         * Статический метод для записи лога.
-         * Использует synchronized для предотвращения конфликтов записи.
-         */
         @Synchronized
         fun writeLog(context: Context, message: String, folderName: String? = null) {
             val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
@@ -70,7 +70,6 @@ class LogHelper(
             val prefix = if (currentLog.isEmpty()) "" else "\n\n"
             val newLog = "$currentLog$prefix$fullMessage".trim()
             
-            // Ограничиваем общий размер лога в памяти
             val maxLogSize = 30000 
             val truncatedLog = if (newLog.length > maxLogSize) {
                 "..." + newLog.takeLast(maxLogSize - 3)
@@ -80,7 +79,6 @@ class LogHelper(
 
             prefs.edit().putString("log_content", truncatedLog).apply()
 
-            // Отправляем сообщение вместе с интентом, чтобы UI мог просто добавить его
             val intent = Intent(ACTION_LOG_UPDATED).apply {
                 putExtra(EXTRA_MESSAGE, fullMessage)
             }

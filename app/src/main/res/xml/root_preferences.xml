@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/bot_settings">
+        <Preference
+            app:key="menu_add_bot"
+            app:title="@string/add_bot_to_chat"
+            app:summary="@string/bot_not_connected" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/sync_settings">
+        <ListPreference
+            app:defaultValue="wifi_only"
+            app:entries="@array/sync_options_entries"
+            app:entryValues="@array/sync_options_values"
+            app:key="sync_option"
+            app:title="@string/synchronization"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:defaultValue="900000"
+            app:entries="@array/sync_interval_entries"
+            app:entryValues="@array/sync_interval_values"
+            app:key="sync_interval"
+            app:title="@string/sync_interval"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:defaultValue="0"
+            app:entries="@array/cache_limit_entries"
+            app:entryValues="@array/cache_limit_values"
+            app:key="cache_limit"
+            app:title="@string/cache_limit"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/advanced_settings">
+        <Preference
+            app:key="proxy_url"
+            app:title="@string/set_proxy_url" />
+
+        <Preference
+            app:key="bot_token"
+            app:title="@string/use_own_bot_token" />
+
+        <ListPreference
+            app:defaultValue="-1"
+            app:entries="@array/theme_entries"
+            app:entryValues="@array/theme_values"
+            app:key="theme_mode"
+            app:title="@string/app_theme"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            app:key="menu_reset_settings"
+            app:title="@string/reset_app_settings" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/about_app">
+        <Preference
+            app:key="menu_app_info"
+            app:title="@string/app_name"
+            app:summary="@string/check_for_updates" />
+        <Preference
+            app:key="menu_manual"
+            app:title="@string/instruction" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -39,10 +39,15 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
         fun onSyncToggle(position: Int, isChecked: Boolean)
     }
 
+    interface OnShowAllPreviewsListener {
+        fun onShowAllPreviews(folder: Folder, shownIdentifiers: List<String>)
+    }
+
     private var itemClickListener: OnItemClickListener? = null
     private var deleteClickListener: OnDeleteClickListener? = null
     private var resetCacheClickListener: OnResetCacheClickListener? = null
     private var syncToggleListener: OnSyncToggleListener? = null
+    private var showAllPreviewsListener: OnShowAllPreviewsListener? = null
 
     private val adapterScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -50,6 +55,7 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
     fun setOnDeleteClickListener(listener: OnDeleteClickListener) { this.deleteClickListener = listener }
     fun setOnResetCacheClickListener(listener: OnResetCacheClickListener) { this.resetCacheClickListener = listener }
     fun setOnSyncToggleListener(listener: OnSyncToggleListener) { this.syncToggleListener = listener }
+    fun setOnShowAllPreviewsListener(listener: OnShowAllPreviewsListener) { this.showAllPreviewsListener = listener }
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FolderViewHolder {
@@ -70,7 +76,7 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
 
     inner class FolderViewHolder(private val binding: FolderItemBinding) : RecyclerView.ViewHolder(binding.root) {
         private var job: Job? = null
-        private var lastPreviewsIdentifiers: List<String> = emptyList()
+        private var lastPreviewsState: List<Pair<String, Boolean>> = emptyList()
         private var lastTotalCount: Int = -1
         private var lastFolderId: String? = null
 
@@ -97,22 +103,35 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
         fun bind(folder: Folder) {
             val context = itemView.context
             
-            // Если ViewHolder переиспользуется для другой папки, сбрасываем кэш превью
             if (lastFolderId != folder.id) {
                 lastFolderId = folder.id
-                lastPreviewsIdentifiers = emptyList()
+                lastPreviewsState = emptyList()
                 lastTotalCount = -1
             }
             
             binding.tvFolderName.text = folder.name
+            
+            if (folder.hasTopicError) {
+                binding.tvFolderName.setTextColor(context.getColor(android.R.color.holo_red_dark))
+            } else {
+                val typedValue = android.util.TypedValue()
+                context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
+                binding.tvFolderName.setTextColor(typedValue.data)
+            }
+
             binding.tvFolderDetails.text = context.getString(R.string.folder_details, folder.topic.ifEmpty { "-" }, folder.mediaType)
             binding.ivFolderIcon.setImageResource(R.drawable.ic_folder)
             binding.cbSyncToggle.setOnCheckedChangeListener(null)
 
             binding.cbSyncToggle.isChecked = folder.isSyncing
+            itemView.alpha = if (folder.isSyncing) 1.0f else 0.5f
 
             binding.cbSyncToggle.setOnCheckedChangeListener { _, isChecked ->
                 if (adapterPosition != RecyclerView.NO_POSITION) {
+                    if (isChecked) {
+                        folder.hasTopicError = false
+                    }
+                    itemView.alpha = if (isChecked) 1.0f else 0.5f
                     syncToggleListener?.onSyncToggle(adapterPosition, isChecked)
                 }
             }
@@ -128,32 +147,29 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
                     getFolderPreviewsFast(itemView.context, folder)
                 }
                 
-                val currentIdentifiers = newPreviews.map { it.identifier }
+                val currentState = newPreviews.map { it.identifier to it.isExcluded }
                 
-                // Проверяем и идентификаторы превью, и общее количество файлов
-                if (currentIdentifiers == lastPreviewsIdentifiers && totalFound == lastTotalCount && lastPreviewsIdentifiers.isNotEmpty()) {
+                if (currentState == lastPreviewsState && totalFound == lastTotalCount && lastPreviewsState.isNotEmpty()) {
                     return@launch
                 }
                 
-                lastPreviewsIdentifiers = currentIdentifiers
+                lastPreviewsState = currentState
                 lastTotalCount = totalFound
 
-                // Запускаем анимацию
                 val transition = AutoTransition().apply {
                     duration = 300
                     ordering = AutoTransition.ORDERING_TOGETHER
                 }
                 TransitionManager.beginDelayedTransition(binding.llPreviews, transition)
 
-                updatePreviewContainer(newPreviews)
+                updatePreviewContainer(newPreviews, folder)
             }
         }
 
-        private fun updatePreviewContainer(newPreviews: List<PreviewData>) {
+        private fun updatePreviewContainer(newPreviews: List<PreviewData>, folder: Folder) {
             val container = binding.llPreviews
             val inflater = LayoutInflater.from(container.context)
 
-            val currentViewsMap = container.children.associateBy { it.tag as? String }
             container.removeAllViews()
 
             if (newPreviews.isEmpty()) {
@@ -161,22 +177,34 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
                 return
             }
 
+            val shownIdentifiers = newPreviews.filter { !it.isCountOnly }.map { it.identifier }
+
             newPreviews.forEach { data ->
-                val existingView = currentViewsMap[data.identifier]
+                val previewBinding = PreviewItemBinding.inflate(inflater, container, false)
+                setupPreviewView(previewBinding, data)
+                previewBinding.root.tag = data.identifier
                 
-                if (existingView != null) {
-                    // Обновляем текст счетчика, если это элемент-заглушка с количеством
+                previewBinding.root.setOnClickListener {
                     if (data.isCountOnly) {
-                        existingView.findViewById<TextView>(R.id.tvMoreCount)?.text = if (data.identifier == "audio_count") "${data.count}" else "+${data.count}"
+                        showAllPreviewsListener?.onShowAllPreviews(folder, shownIdentifiers)
+                    } else {
+                        toggleFileExclusion(container.context, data.identifier, folder)
                     }
-                    container.addView(existingView)
-                } else {
-                    val previewBinding = PreviewItemBinding.inflate(inflater, container, false)
-                    setupPreviewView(previewBinding, data)
-                    previewBinding.root.tag = data.identifier
-                    container.addView(previewBinding.root)
                 }
+                
+                container.addView(previewBinding.root)
             }
+        }
+
+        private fun toggleFileExclusion(context: Context, identifier: String, folder: Folder) {
+            val excludedFilesPrefs = context.getSharedPreferences("ExcludedFiles", Context.MODE_PRIVATE)
+            val isExcluded = excludedFilesPrefs.contains(identifier)
+            if (isExcluded) {
+                excludedFilesPrefs.edit().remove(identifier).apply()
+            } else {
+                excludedFilesPrefs.edit().putBoolean(identifier, true).apply()
+            }
+            loadPreviews(folder)
         }
 
         private fun setupPreviewView(previewBinding: PreviewItemBinding, data: PreviewData) {
@@ -197,6 +225,14 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
                     previewBinding.ivPreview.setColorFilter(0xFFCCCCCC.toInt())
                     previewBinding.ivPreview.alpha = 0.8f
                 }
+
+                if (data.isExcluded) {
+                    previewBinding.ivPreview.setColorFilter(0xAA000000.toInt(), android.graphics.PorterDuff.Mode.SRC_ATOP)
+                } else {
+                    if (data.bitmap != null) {
+                        previewBinding.ivPreview.clearColorFilter()
+                    }
+                }
             }
         }
 
@@ -216,7 +252,9 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
             val treeUri = Uri.parse(folder.path)
             
             val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
+            val excludedFilesPrefs = context.getSharedPreferences("ExcludedFiles", Context.MODE_PRIVATE)
             val validFiles = mutableListOf<FileInfo>()
+            val excludedFiles = mutableListOf<FileInfo>()
 
             try {
                 val documentId = DocumentsContract.getTreeDocumentId(treeUri)
@@ -251,13 +289,26 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
                         val fileIdentifier = "folder_${folder.id}_${name}_$size"
                         
                         if (!sentFilesPrefs.contains(fileIdentifier) && MediaUtils.isValidMedia(context, name, folder.mediaType)) {
-                            validFiles.add(FileInfo(
-                                uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId),
-                                name = name,
-                                lastModified = lastModified,
-                                identifier = fileIdentifier,
-                                isVideo = mime.startsWith("video/")
-                            ))
+                            val isExcluded = excludedFilesPrefs.contains(fileIdentifier)
+                            if (!isExcluded) {
+                                validFiles.add(FileInfo(
+                                    uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId),
+                                    name = name,
+                                    lastModified = lastModified,
+                                    identifier = fileIdentifier,
+                                    isVideo = mime.startsWith("video/"),
+                                    isExcluded = false
+                                ))
+                            } else {
+                                excludedFiles.add(FileInfo(
+                                    uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId),
+                                    name = name,
+                                    lastModified = lastModified,
+                                    identifier = fileIdentifier,
+                                    isVideo = mime.startsWith("video/"),
+                                    isExcluded = true
+                                ))
+                            }
                         }
                     }
                 }
@@ -267,9 +318,12 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
             }
 
             val totalCount = validFiles.size
-            if (validFiles.isEmpty()) return Pair(result, 0)
+            
+            val combinedFiles = mutableListOf<FileInfo>()
+            combinedFiles.addAll(validFiles.sortedByDescending { it.lastModified })
+            combinedFiles.addAll(excludedFiles.sortedByDescending { it.lastModified })
 
-            validFiles.sortByDescending { it.lastModified }
+            if (combinedFiles.isEmpty()) return Pair(result, 0)
 
             val isOnlyAudio = folder.mediaType == context.getString(R.string.only_audio)
             if (isOnlyAudio) {
@@ -279,17 +333,17 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
 
             val displayLimit = calculateDisplayLimit(context)
 
-            if (totalCount <= displayLimit) {
-                validFiles.forEach { fileInfo ->
+            if (combinedFiles.size <= displayLimit) {
+                combinedFiles.forEach { fileInfo ->
                     val bitmap = loadFileThumbnailFast(context, fileInfo.uri, fileInfo.isVideo)
-                    result.add(PreviewData(identifier = fileInfo.identifier, bitmap = bitmap))
+                    result.add(PreviewData(identifier = fileInfo.identifier, bitmap = bitmap, isExcluded = fileInfo.isExcluded))
                 }
             } else {
-                validFiles.take(displayLimit - 1).forEach { fileInfo ->
+                combinedFiles.take(displayLimit - 1).forEach { fileInfo ->
                     val bitmap = loadFileThumbnailFast(context, fileInfo.uri, fileInfo.isVideo)
-                    result.add(PreviewData(identifier = fileInfo.identifier, bitmap = bitmap))
+                    result.add(PreviewData(identifier = fileInfo.identifier, bitmap = bitmap, isExcluded = fileInfo.isExcluded))
                 }
-                result.add(PreviewData(identifier = "more_count", isCountOnly = true, count = totalCount - (displayLimit - 1)))
+                result.add(PreviewData(identifier = "more_count", isCountOnly = true, count = totalCount - (result.count { !it.isExcluded })))
             }
 
             return Pair(result, totalCount)
@@ -298,10 +352,7 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
         private fun calculateDisplayLimit(context: Context): Int {
             val displayMetrics = context.resources.displayMetrics
             val screenWidthDp = displayMetrics.widthPixels / displayMetrics.density
-            // Учитываем: 16dp (отступ карточки) * 2 + 16dp (внутренний padding) * 2 = 64dp
-            // Мы добавили negative margin -8dp для ScrollView, поэтому эффективная доступная ширина на 8dp больше.
             val availableWidthDp = (screenWidthDp - 64) + 8
-            // Каждая плитка: 48dp (ширина) + 8dp (отступ справа) = 56dp
             val limit = (availableWidthDp / 56).toInt()
             return limit.coerceAtLeast(2)
         }
@@ -339,14 +390,16 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
         val name: String,
         val lastModified: Long,
         val identifier: String,
-        val isVideo: Boolean
+        val isVideo: Boolean,
+        val isExcluded: Boolean
     )
 
     data class PreviewData(
         val identifier: String,
         val bitmap: Bitmap? = null,
         val isCountOnly: Boolean = false,
-        val count: Int = 0
+        val count: Int = 0,
+        val isExcluded: Boolean = false
     )
 
     companion object {

@@ -1,6 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.UploadGram" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Цвета для темной темы -->
         <item name="colorPrimary">@color/m3_dark_primary</item>
         <item name="colorOnPrimary">@color/m3_dark_onPrimary</item>
         <item name="colorPrimaryContainer">@color/m3_dark_primaryContainer</item>

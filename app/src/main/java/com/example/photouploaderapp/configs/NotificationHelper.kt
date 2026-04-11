@@ -24,10 +24,10 @@ class NotificationHelper(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Folder Sync",
+                context.getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Уведомление о работе службы синхронизации"
+                description = context.getString(R.string.notification_sync_desc)
                 setShowBadge(false)
             }
             notificationManager.createNotificationChannel(channel)
@@ -55,8 +55,8 @@ class NotificationHelper(private val context: Context) {
         )
 
         val actionText = if (isRunning) context.getString(R.string.stop_service) else context.getString(R.string.start_service)
-        val title = if (isRunning) "UploadGram: Работает" else "UploadGram: Остановлен"
-        val message = if (isRunning) "Сервис активен и проверяет папки" else "Сервис остановлен"
+        val title = if (isRunning) context.getString(R.string.service_running) else context.getString(R.string.service_stopped_status)
+        val message = if (isRunning) context.getString(R.string.service_active_scanning) else context.getString(R.string.service_stopped)
 
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)

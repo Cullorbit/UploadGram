@@ -20,7 +20,7 @@ class ServiceController(private val context: Context, private val settingsManage
 
     fun startService(folders: List<Folder>) {
         val networkUtils = NetworkUtils(context)
-        val requiredNetwork = if (settingsManager.syncOption == "wifi_only") {
+        val requiredNetwork = if (settingsManager.isWifiOnly) {
             if (!networkUtils.isWifiConnected()) {
                 LogHelper.writeLog(context, context.getString(R.string.sync_available_wifi_only))
                 return
@@ -47,7 +47,7 @@ class ServiceController(private val context: Context, private val settingsManage
         )
 
         val periodicScanRequest = PeriodicWorkRequestBuilder<ScanWorker>(
-            settingsManager.syncInterval, TimeUnit.MILLISECONDS,
+            settingsManager.syncIntervalMinutes.toLong(), TimeUnit.MINUTES,
             15, TimeUnit.MINUTES
         )
             .setConstraints(Constraints.Builder().setRequiredNetworkType(requiredNetwork).build())
@@ -99,7 +99,7 @@ class ServiceController(private val context: Context, private val settingsManage
             LogHelper.writeLog(context, message)
         }
 
-        val networkType = if (settingsManager.syncOption == "wifi_only") NetworkType.UNMETERED else NetworkType.CONNECTED
+        val networkType = if (settingsManager.isWifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED
         val allUploadRequests = mutableListOf<OneTimeWorkRequest>()
 
         folders.filter { it.isSyncing }.forEach { folder ->
@@ -126,11 +126,7 @@ class ServiceController(private val context: Context, private val settingsManage
     }
 
     private fun logNextSyncTime() {
-        var intervalMillis = settingsManager.syncInterval
-        if (intervalMillis < TimeUnit.MINUTES.toMillis(15)) {
-            intervalMillis = TimeUnit.MINUTES.toMillis(15)
-        }
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(intervalMillis)
+        val minutes = settingsManager.syncIntervalMinutes
         LogHelper.writeLog(context, context.getString(R.string.service_configured_next_check, minutes))
     }
 
@@ -140,6 +136,7 @@ class ServiceController(private val context: Context, private val settingsManage
             val folderUri = folder.path.toUri()
             val documentFolder = DocumentFile.fromTreeUri(context, folderUri)
             val sentFilesPrefs = context.getSharedPreferences("SentFiles", Context.MODE_PRIVATE)
+            val excludedFilesPrefs = context.getSharedPreferences("ExcludedFiles", Context.MODE_PRIVATE)
 
             if (documentFolder == null || !documentFolder.canRead()) {
                 LogHelper.writeLog(context, context.getString(R.string.error_folder_access, folder.name), context.getString(R.string.system_log_name))
@@ -151,13 +148,17 @@ class ServiceController(private val context: Context, private val settingsManage
                 val fileName = docFile.name ?: return@forEach
                 if (fileName.startsWith(".")) return@forEach
 
-                // Создаем уникальный идентификатор: ID папки + имя файла + размер
                 val fileIdentifier = "folder_${folder.id}_${fileName}_${docFile.length()}"
 
-                if (!sentFilesPrefs.contains(fileIdentifier) && isValidMedia(docFile, folder.mediaType)) {
+                if (!sentFilesPrefs.contains(fileIdentifier) && 
+                    !excludedFilesPrefs.contains(fileIdentifier) && 
+                    MediaUtils.isValidMedia(context, docFile, folder.mediaType)) {
+                    val finalBotToken = if (!folder.botToken.isNullOrBlank()) folder.botToken else settingsManager.botToken
+                    val finalChatId = if (!folder.chatId.isNullOrBlank()) folder.chatId else (settingsManager.chatId ?: "")
+
                     val inputData = workDataOf(
-                        "KEY_BOT_TOKEN" to (folder.botToken.ifEmpty { settingsManager.botToken ?: "" }),
-                        "KEY_CHAT" to (folder.chatId.ifEmpty { settingsManager.chatId ?: "" }),
+                        "KEY_BOT_TOKEN" to finalBotToken,
+                        "KEY_CHAT" to finalChatId,
                         "KEY_FILE_URI" to docFile.uri.toString(),
                         "KEY_ORIGINAL_FILE_NAME" to fileName,
                         "KEY_TOPIC" to (folder.getTopicId() ?: -1),
@@ -183,25 +184,6 @@ class ServiceController(private val context: Context, private val settingsManage
         return requests
     }
 
-    private fun isValidMedia(file: DocumentFile, mediaType: String): Boolean {
-        val fileName = file.name?.lowercase() ?: return false
-        val isFilePhoto = listOf(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp").any { fileName.endsWith(it) }
-        val isFileVideo = listOf(".mp4", ".mkv", ".webm", ".avi", ".mov", ".3gp", ".flv").any { fileName.endsWith(it) }
-        val isFileAudio = listOf(".mp3", ".m4a", ".ogg", ".wav", ".flac").any { fileName.endsWith(it) }
-
-        val photoTypeString = context.getString(R.string.only_photo)
-        val videoTypeString = context.getString(R.string.only_video)
-        val audioTypeString = context.getString(R.string.only_audio)
-        val allTypeString = context.getString(R.string.all_media)
-
-        return when (mediaType) {
-            photoTypeString -> isFilePhoto
-            videoTypeString -> isFileVideo
-            audioTypeString -> isFileAudio
-            allTypeString -> isFilePhoto || isFileVideo || isFileAudio
-            else -> false
-        }
-    }
 
     fun stopService() {
         workManager.cancelAllWorkByTag("upload_work")

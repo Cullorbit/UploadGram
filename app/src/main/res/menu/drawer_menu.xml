@@ -6,13 +6,9 @@
     <item android:title="@string/settings">
         <menu>
             <item
-                android:id="@+id/menu_select_bot_token"
+                android:id="@+id/menu_add_bot"
                 android:icon="@drawable/ic_bot_token"
-                android:title="@string/set_bot_token" />
-            <item
-                android:id="@+id/menu_select_chat"
-                android:icon="@drawable/ic_chat_id"
-                android:title="@string/set_chat_id" />
+                android:title="@string/add_bot_to_chat" />
         </menu>
     </item>
 

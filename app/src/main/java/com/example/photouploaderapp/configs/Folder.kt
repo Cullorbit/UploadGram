@@ -11,7 +11,8 @@ data class Folder(
     var isSyncing: Boolean = false,
     var botToken: String = "",
     var chatId: String = "",
-    var isTopicEnabled: Boolean = false
+    var isTopicEnabled: Boolean = false,
+    var hasTopicError: Boolean = false
 ) {
     fun getTopicId(): Int? {
         return topic.toIntOrNull()

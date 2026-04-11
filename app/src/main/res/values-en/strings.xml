@@ -8,74 +8,95 @@
     <string name="stop_service">Stop</string>
     <string name="log_title">Event Log</string>
     <string name="clear_log">Clear Log</string>
-    <string name="set_sync_interval">Sync Interval</string>
+    <string name="add_folder">Add folder</string>
+
+    <string name="settings">Basic settings</string>
+    <string name="bot_settings">Bot settings</string>
+    <string name="advanced_settings">Advanced settings</string>
+    <string name="sync_settings">Sync settings</string>
+    <string name="connect_bot">Connect bot</string>
+    <string name="add_bot_to_chat">Add bot to group</string>
+    <string name="waiting_for_chat_id">Waiting for bot to be added to group...</string>
+    <string name="bot_connected">Bot connected to chat: %1$s</string>
+    <string name="bot_not_connected">Bot is not connected to your chat</string>
+    <string name="topic_not_found">Topic #%1$s not found in this chat.</string>
+    <string name="checking_topic">Checking topic...</string>
+    <string name="topic_exists">Topic confirmed.</string>
+    <string name="synchronization">Sync mode</string>
+    <string name="set_sync_interval">Set sync interval</string>
+    <string name="reset_app_settings">Reset app settings</string>
+
+    <string name="sync_option_title">Mode: %1$s</string>
+    <string name="sync_interval_minutes">Interval: %1$s min.</string>
+    <string name="bot_token_set">Bot ready</string>
+    <string name="bot_token_not_set">Not set</string>
+    <string name="chat_id_set">ID: %1$s</string>
+    <string name="chat_id_not_set">Not specified</string>
+
+    <string name="enter_bot_token">Enter Bot Token</string>
+    <string name="enter_chat_id">Enter Chat ID</string>
+    <string name="sync_interval">Sync interval</string>
+    <string name="setting_saved">Setting saved.</string>
+    <string name="field_cannot_be_empty">Field cannot be empty.</string>
+    <string name="invalid_url_format">Invalid URL format (must start with http:// or https://)</string>
+    <string name="reset_settings_confirmation">Are you sure you want to reset all application settings?</string>
+    <string name="settings_reset">Settings reset.</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
+    <string name="wifi_only">Wi-Fi only</string>
+    <string name="wifi_and_mobile_data">Wi-Fi and mobile data</string>
+    <string name="fifteen_minutes">15 minutes</string>
+    <string name="thirty_minutes">30 minutes</string>
+    <string name="one_hour">1 hour</string>
+    <string name="two_hours">2 hours</string>
+
+    <string name="edit_folder">Edit folder</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="folder_name">Folder name</string>
+    <string name="topic_number">Topic number (optional)</string>
+    <string name="topic_id_hint">Topic ID (enter number)</string>
+    <string name="media_type">Media type</string>
+    <string name="folder_path">Folder path</string>
+
+    <string name="folder">Folder</string>
+    <string name="chat">chat</string>
+    <string name="selected">Selected</string>
+    <string name="not_selected">Not selected</string>
+    <string name="folder_details">Topic: %1$s • Type: %2$s</string>
+
+    <string name="all_media">All</string>
+    <string name="only_photo">Photo</string>
+    <string name="only_video">Video</string>
+    <string name="only_audio">Audio</string>
     <string-array name="media_types">
         <item>@string/all_media</item>
         <item>@string/only_photo</item>
         <item>@string/only_video</item>
         <item>@string/only_audio</item>
     </string-array>
+
     <string-array name="log_filters">
         <item>@string/all_logs</item>
         <item>@string/success_logs</item>
         <item>@string/error_logs</item>
     </string-array>
+
     <string name="all_logs">All</string>
     <string name="success_logs">Successful</string>
     <string name="error_logs">Errors</string>
-    <string name="folder">Folder</string>
-    <string name="folder_changes_detected">Folder changes detected. Service stopped.</string>
-    <string name="configure_bot_token_chat_id">First, configure Bot Token and Chat ID in settings.</string>
-    <string name="sync_available_wifi_only">Sync is available only over Wi-Fi.</string>
-    <string name="no_internet_connection">No internet connection.</string>
-    <string name="only_photo">Photo</string>
-    <string name="only_video">Video</string>
-    <string name="only_audio">Audio</string>
-    <string name="cancel">Cancel</string>
-    <string name="add_folder">Add Folder</string>
-    <string name="edit_folder">Edit Folder</string>
-    <string name="save">Save</string>
-    <string name="selected">Selected</string>
-    <string name="not_selected">Not selected</string>
-    <string name="folder_details">Topic: %1$s • Type: %2$s</string>
-    <string name="set_bot_token">Set Bot Token</string>
-    <string name="enter_bot_token">Enter Bot Token</string>
-    <string name="set_chat_id">Set Chat ID</string>
-    <string name="enter_chat_id">Enter Chat ID</string>
-    <string name="thirty_minutes">30 minutes</string>
-    <string name="sync_interval">Sync interval</string>
-    <string name="setting_saved">Setting saved.</string>
-    <string name="field_cannot_be_empty">Field cannot be empty.</string>
-    <string name="reset_settings_confirmation">Are you sure you want to reset all application settings?</string>
-    <string name="yes">Yes</string>
-    <string name="no">No</string>
-    <string name="settings_reset">Settings reset.</string>
-    <string name="wifi_only">Wi-Fi only</string>
-    <string name="wifi_and_mobile_data">Wi-Fi and mobile data</string>
-    <string name="synchronization">Sync Mode</string>
+
+    <string name="log_cleared">Log cleared</string>
     <string name="service_stopped">Service stopped</string>
-    <string name="fifteen_minutes">15 minutes</string>
-    <string name="one_hour">1 hour</string>
-    <string name="two_hours">2 hours</string>
+    <string name="no_internet_connection">No internet connection.</string>
+    <string name="sync_available_wifi_only">Sync is available only over Wi-Fi.</string>
+    <string name="configure_bot_token_chat_id">First, configure Bot Token and Chat ID in settings.</string>
+    <string name="no_folders_for_sync">No folders marked for synchronization.</string>
     <string name="file_sent_successfully">File sent successfully: %1$s</string>
     <string name="error_sending_file_queued">Error sending. File returned to queue: %1$s</string>
-    <string name="folder_name">Folder Name</string>
-    <string name="topic_number">Topic Number (optional)</string>
-    <string name="media_type">Media Type</string>
-    <string name="log_cleared">Log cleared</string>
-    <string name="folder_path">Folder Path</string>
-    <string name="sync_option_title">Mode: %1$s</string>
-    <string name="sync_interval_minutes">Interval: %1$s min.</string>
-    <string name="bot_token_set">Set</string>
-    <string name="bot_token_not_set">Not set</string>
-    <string name="chat_id_set">ID: %1$s</string>
-    <string name="chat_id_not_set">Not specified</string>
-    <string name="all_media">All</string>
-    <string name="settings">Basic Settings</string>
-    <string name="sync_settings">Sync Settings</string>
-    <string name="reset_app_settings">Reset app settings</string>
     <string name="scanning_and_enqueuing">Scanning folders and enqueuing tasks...</string>
-    <string name="no_folders_for_sync">No folders marked for synchronization.</string>
+    <string name="folder_changes_detected">Folder changes detected. Service stopped.</string>
     <string name="add_folder_fab">Add Folder</string>
     <string name="reset_cache">Reset Cache</string>
     <string name="delete">Delete</string>
@@ -100,11 +121,16 @@
         <item quantity="one">%d hour</item>
         <item quantity="other">%d hours</item>
     </plurals>
+    <string name="update_available_title">Update available</string>
+    <string name="latest_version_installed">You have the latest version installed</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="app_name_version">UploadGram v%1$s</string>
     <string name="error_folder_access">Error: no access to folder \'%1$s\'. Try selecting it again.</string>
     <string name="error_critical_scan">Critical error while scanning folder \'%1$s\': %2$s</string>
     <string name="system_log_name">SYSTEM</string>
     <string name="log_skipping_hidden_file">Skipping hidden file: %1$s</string>
     <string name="manual">User Guide</string>
+    <string name="instruction">User Guide</string>
     <string name="app_theme">App Theme</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
@@ -115,7 +141,10 @@
     <string name="default_button">Default</string>
     <string name="proxy_url_description">A custom telegram-bot-api server allows sending files up to 2 GB. Standard Telegram limit is 50 MB.</string>
     <string name="proxy_url_default_toast">Telegram bot api server set to default.</string>
-    <string name="invalid_url_format">Invalid URL format (must start with http:// or https://)</string>
+    <string name="use_own_bot_token">Use your own Bot token</string>
+    <string name="bot_token_description">You can use your own Telegram bot for uploads. This is recommended for privacy and higher limits. Leave empty or press Default to use the built-in bot.</string>
+    <string name="bot_token_default_toast">Default bot token restored.</string>
+    <string name="invalid_bot_token_format">Invalid Bot Token format. It should look like 123456789:ABCDefgh...</string>
 
     <string name="cache_settings">Cache Settings</string>
     <string name="cache_limit">File Cache Limit</string>
@@ -129,4 +158,38 @@
     <string name="sending_file">Sending file: %1$s</string>
     <string name="error_timeout">Timeout error. Check connection or file size.</string>
     <string name="upload_cancelled">Upload of %1$s cancelled by user.</string>
+    <string name="main_chat_no_topic">Main chat (no topic)</string>
+    <string name="error_chat_with_desc">Chat error: %1$s</string>
+    <string name="error_topic_with_desc">Topic error: %1$s</string>
+    <string name="topics_loaded">Topics loaded</string>
+    <string name="bot_not_in_chat">Bot not in chat or chat not found</string>
+    <string name="network_error">Network error</string>
+    <string name="network_error_loading_topics">Network error while loading topics</string>
+    <string name="bot_connected_success">Bot connected successfully!</string>
+    <string name="bot_authorization">Bot Authorization</string>
+    <string name="file_too_large">File too large for Telegram</string>
+    <string name="service_active_scanning">Service active and scanning folders</string>
+    <string name="error_checking">Validation error: %1$s</string>
+    <string name="error_loading_topics">Error loading topics: %1$s</string>
+    <string name="error_get_chat">getChat error</string>
+    <string name="error_topics">Topics error</string>
+    <string name="bot_in_chat">Bot in chat \"%1$s\"</string>
+    <string name="app_auth_message">UploadGram application authorization in progress...\nCode: %1$s</string>
+    <string name="error_auth_timeout">Timeout. Please try again.</string>
+    <string name="error_telegram_open">Error opening Telegram: %1$s</string>
+    <string name="update_available">Update available. UploadGram %1$s</string>
+    <string name="error_caching">CACHING ERROR: %1$s</string>
+    <string name="notification_channel_name">Folder Sync</string>
+    <string name="service_running">UploadGram: Running</string>
+    <string name="service_stopped_status">UploadGram: Stopped</string>
+    <string name="error_network_with_desc">Network error: %1$s</string>
+    <string name="error_timeout_details">Loading took too long</string>
+    <string name="notification_permission_required">Notification permission is required</string>
+    <string name="app_version_format">UploadGram v%1$s</string>
+    <string name="error_get_version">Couldn\'t get app version</string>
+    <string name="error_generic_with_desc">Error: %1$s</string>
+    <string name="minutes_short">%1$d min.</string>
+    <string name="hours_short">%1$d h.</string>
+    <string name="error_topic_not_found_message">Incorrect topic settings for folder %1$s. Replace the topic number with the correct one and retry sync.</string>
+    <string name="about_app">About App</string>
 </resources>

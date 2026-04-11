@@ -1,12 +1,15 @@
 package com.example.photouploaderapp.telegrambot
 
 import android.util.Log
+import com.example.photouploaderapp.R
+import com.example.photouploaderapp.configs.MyApplication
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
+import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.resume
@@ -33,17 +36,40 @@ object TelegramApi {
 
             var result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, false)
 
-            if (!result.first && (result.second?.contains("400") == true || result.second?.contains("dimensions") == true)) {
-                Log.w("TelegramApi", "Retrying $fileName as Document via $baseUrl")
-                delay(1000)
-                result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, true)
+            if (!result.first && result.second?.contains("Status: 429") == true) {
+                val retryAfter = extractRetryAfter(result.second ?: "")
+                val waitMs = (retryAfter ?: 30) * 1000L + 2000L
+                delay(waitMs)
+                result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, false)
             }
 
-            delay(1500)
+            if (!result.first && (result.second?.contains("400") == true || result.second?.contains("dimensions") == true)) {
+                delay(1000)
+                result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, true)
+
+                if (!result.first && result.second?.contains("Status: 429") == true) {
+                    val retryAfter = extractRetryAfter(result.second ?: "")
+                    val waitMs = (retryAfter ?: 30) * 1000L + 2000L
+                    delay(waitMs)
+                    result = executeUpload(baseUrl, botToken, chatId, topicId, file, fileName, true)
+                }
+            }
+
+            delay(3500)
 
             return result
         } finally {
             networkSemaphore.release()
+        }
+    }
+
+    private fun extractRetryAfter(errorMessage: String): Int? {
+        return try {
+            val jsonPart = errorMessage.substringAfter(" - ").trim()
+            val json = JSONObject(jsonPart)
+            json.optJSONObject("parameters")?.optInt("retry_after")
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -83,7 +109,6 @@ object TelegramApi {
 
         val call = client.newCall(request)
 
-        // Обеспечиваем отмену запроса OkHttp при отмене корутины
         continuation.invokeOnCancellation {
             call.cancel()
         }
@@ -91,10 +116,11 @@ object TelegramApi {
         call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 if (continuation.isCancelled) return
+                val context = MyApplication.getContext()
                 val errorMsg = if (e is java.net.SocketTimeoutException) {
-                    "Timeout error: загрузка длилась слишком долго"
+                    "${context.getString(R.string.error_timeout)}: ${context.getString(R.string.error_timeout_details)}"
                 } else {
-                    "Network error: ${e.message}"
+                    context.getString(R.string.error_network_with_desc, e.message ?: "")
                 }
                 continuation.resume(Pair(false, errorMsg))
             }
@@ -104,13 +130,18 @@ object TelegramApi {
                     response.close()
                     return
                 }
+                val context = MyApplication.getContext()
                 val responseBody = try { response.body?.string() ?: "" } catch (e: Exception) { "" }
                 val isOk = response.isSuccessful && responseBody.contains("\"ok\":true")
 
                 if (isOk) {
                     continuation.resume(Pair(true, null))
                 } else {
-                    val msg = if (response.code == 413) "Файл слишком большой для Telegram" else "Status: ${response.code} - $responseBody"
+                    val msg = when {
+                        response.code == 413 -> context.getString(R.string.file_too_large)
+                        response.code == 400 && responseBody.contains("message thread not found") -> "ERROR_THREAD_NOT_FOUND"
+                        else -> "Status: ${response.code} - $responseBody"
+                    }
                     continuation.resume(Pair(false, msg))
                 }
                 response.close()

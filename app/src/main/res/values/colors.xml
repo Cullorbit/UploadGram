@@ -3,7 +3,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- M3 Светлая тема -->
     <color name="m3_light_primary">#6750A4</color>
     <color name="m3_light_onPrimary">#FFFFFF</color>
     <color name="m3_light_primaryContainer">#EADDFF</color>

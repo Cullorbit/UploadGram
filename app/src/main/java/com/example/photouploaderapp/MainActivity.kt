@@ -6,69 +6,52 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.graphics.Rect
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.GestureDetector
-import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.view.LayoutInflater
+import android.widget.TextView
+import android.widget.ScrollView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.photouploaderapp.configs.AddFolderDialog
-import com.example.photouploaderapp.configs.EditFolderDialog
-import com.example.photouploaderapp.configs.Folder
-import com.example.photouploaderapp.configs.FolderAdapter
-import com.example.photouploaderapp.configs.LogHelper
-import com.example.photouploaderapp.configs.MyApplication
-import com.example.photouploaderapp.configs.NavigationHandler
-import com.example.photouploaderapp.configs.ServiceController
-import com.example.photouploaderapp.configs.SettingsManager
-import com.example.photouploaderapp.configs.UIUpdater
-import com.example.photouploaderapp.configs.SyncIntervalDialog
+import androidx.recyclerview.widget.RecyclerView
+import com.example.photouploaderapp.configs.*
 import com.example.photouploaderapp.databinding.ActivityMainBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
-import kotlin.math.abs
+import java.util.*
 
-class MainActivity : AppCompatActivity(),
-    AddFolderDialog.AddFolderListener,
-    EditFolderDialog.EditFolderListener {
+class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, EditFolderDialog.EditFolderListener {
+
     private var isServiceRunning = false
     lateinit var binding: ActivityMainBinding
     private val folders = mutableListOf<Folder>()
-    private val folderAdapter = FolderAdapter(folders)
+    private val folderAdapter by lazy { FolderAdapter(folders) }
     private lateinit var logHelper: LogHelper
-
     private lateinit var settingsManager: SettingsManager
     private lateinit var serviceController: ServiceController
-    private lateinit var navigationHandler: NavigationHandler
     private lateinit var uiUpdater: UIUpdater
-    private lateinit var drawerToggle: ActionBarDrawerToggle
-    private lateinit var gestureDetector: GestureDetector
-
-    lateinit var folderPickerLauncher: ActivityResultLauncher<Uri?>
+    private lateinit var folderPickerLauncher: ActivityResultLauncher<Uri?>
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (!isGranted) {
-            Toast.makeText(this, "Разрешение на уведомления необходимо для работы в фоне", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.notification_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -77,25 +60,29 @@ class MainActivity : AppCompatActivity(),
             val message = intent?.getStringExtra(LogHelper.EXTRA_MESSAGE)
             if (message != null) {
                 logHelper.appendLog(message)
-            } else {
-                logHelper.loadSavedLog()
             }
         }
     }
 
     private val serviceStateReceiver = object : BroadcastReceiver() {
-        @SuppressLint("NotifyDataSetChanged")
         override fun onReceive(context: Context?, intent: Intent?) {
             val isRunning = intent?.getBooleanExtra("is_running", false) ?: false
             updateServiceState(isRunning)
-            folderAdapter.notifyDataSetChanged()
         }
     }
 
     private val previewsUpdateReceiver = object : BroadcastReceiver() {
-        @SuppressLint("NotifyDataSetChanged")
         override fun onReceive(context: Context?, intent: Intent?) {
-            folderAdapter.notifyDataSetChanged()
+            refreshPreviews()
+        }
+    }
+
+    private val topicErrorReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val folderName = intent?.getStringExtra("folder_name")
+            if (folderName != null) {
+                handleTopicError(folderName)
+            }
         }
     }
 
@@ -105,91 +92,99 @@ class MainActivity : AppCompatActivity(),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        settingsManager = SettingsManager(this)
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(settingsManager.themeMode)
+        
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        (application as? MyApplication)?.folderAdapter = folderAdapter
-
-        settingsManager = SettingsManager(this)
-
+        
         initControllers()
-        setupRecyclerView()
         setupListeners()
+        loadData()
         setupAppVersion()
         checkForUpdates()
-        loadData()
-        initGestureDetector()
-
-        updateServiceState(settingsManager.isServiceRunning)
-
         checkNotificationPermission()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            binding.drawerLayout.post {
-                val exclusionRects = mutableListOf<Rect>()
-                val rect = Rect(0, 0, 200, binding.drawerLayout.height)
-                exclusionRects.add(rect)
-                binding.drawerLayout.systemGestureExclusionRects = exclusionRects
-            }
-        }
+        setupViewPager()
     }
 
-    private fun initGestureDetector() {
-        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onFling(
-                e1: MotionEvent?,
-                e2: MotionEvent,
-                velocityX: Float,
-                velocityY: Float
-            ): Boolean {
-                if (e1 == null) return false
-                
-                val diffX = e2.x - e1.x
-                val diffY = e2.y - e1.y
-                
-                if (abs(diffX) > abs(diffY) && diffX > 100 && abs(velocityX) > 100) {
-                    if (!binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                        binding.drawerLayout.openDrawer(GravityCompat.START)
-                        return true
-                    }
+    private fun setupViewPager() {
+        val adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val layoutId = if (viewType == 0) R.layout.page_folders else R.layout.page_log
+                val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
+                return object : RecyclerView.ViewHolder(view) {}
+            }
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                if (position == 0) {
+                    val rv = holder.itemView.findViewById<RecyclerView>(R.id.recyclerViewFolders)
+                    rv.layoutManager = LinearLayoutManager(this@MainActivity)
+                    rv.adapter = folderAdapter
+                } else {
+                    val tvLog = holder.itemView.findViewById<TextView>(R.id.tvLog)
+                    val scrollView = holder.itemView.findViewById<ScrollView>(R.id.scrollViewLog)
+                    logHelper.updateViews(tvLog, scrollView)
                 }
-                return false
+            }
+
+            override fun getItemCount(): Int = 2
+            override fun getItemViewType(position: Int): Int = position
+        }
+
+        binding.viewPager.adapter = adapter
+        
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = if (position == 0) getString(R.string.tab_folders) else getString(R.string.tab_log)
+        }.attach()
+
+        binding.viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                if (position == 0) {
+                    binding.btnAddFolderIconButton.visibility = View.VISIBLE
+                    binding.btnClearLogIconButton.visibility = View.GONE
+                    binding.buttonSpacer.visibility = View.GONE
+                } else {
+                    binding.btnAddFolderIconButton.visibility = View.GONE
+                    binding.btnClearLogIconButton.visibility = View.VISIBLE
+                    binding.buttonSpacer.visibility = View.VISIBLE
+                }
             }
         })
     }
 
-    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        gestureDetector.onTouchEvent(ev)
-        return super.dispatchTouchEvent(ev)
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        if (item.itemId == R.id.action_settings) {
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     private fun checkNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
                     android.Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
             ) {
                 requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
 
-    private fun setupToolbarAndDrawer() {
+    private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setHomeButtonEnabled(true)
+    }
 
-        drawerToggle = ActionBarDrawerToggle(
-            this,
-            binding.drawerLayout,
-            binding.toolbar,
-            R.string.navigation_drawer_open,
-            R.string.navigation_drawer_close
-        )
-        binding.drawerLayout.addDrawerListener(drawerToggle)
-        binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
-        drawerToggle.syncState()
+    private fun showAddFolderDialog() {
+        val dialog = AddFolderDialog(settingsManager)
+        dialog.show(supportFragmentManager, "AddFolderDialog")
     }
 
     override fun onFolderAdded(folder: Folder) {
@@ -198,7 +193,6 @@ class MainActivity : AppCompatActivity(),
         saveFolders()
         LogHelper.writeLog(this, getString(R.string.new_folder_added, folder.name))
         stopServiceIfNeeded()
-        refreshPreviews()
     }
 
     override fun onFolderEdited(editedFolder: Folder) {
@@ -216,57 +210,33 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun initControllers() {
-        logHelper = LogHelper(this, binding.tvLog, binding.scrollViewLog)
+        logHelper = LogHelper(this)
         serviceController = ServiceController(this, settingsManager)
         uiUpdater = UIUpdater(this, settingsManager)
-        navigationHandler = NavigationHandler(this, settingsManager, uiUpdater)
-    }
-
-    private fun setupRecyclerView() {
-        binding.recyclerViewFolders.layoutManager = LinearLayoutManager(this)
-        binding.recyclerViewFolders.adapter = folderAdapter
     }
 
     private fun setupListeners() {
-        setupToolbarAndDrawer()
-        binding.navigationView.setNavigationItemSelectedListener { menuItem ->
-            navigationHandler.handleNavigationItemSelected(menuItem)
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
-            true
-        }
+        setupToolbar()
 
-        binding.tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
-                when (tab?.position) {
-                    0 -> {
-                        binding.recyclerViewFolders.visibility = android.view.View.VISIBLE
-                        binding.logCard.visibility = android.view.View.GONE
-                        binding.btnAddFolderIconButton.visibility = android.view.View.VISIBLE
-                        binding.btnClearLogIconButton.visibility = android.view.View.GONE
-                        binding.buttonSpacer.visibility = android.view.View.GONE
-                    }
-                    1 -> {
-                        binding.recyclerViewFolders.visibility = android.view.View.GONE
-                        binding.logCard.visibility = android.view.View.VISIBLE
-                        binding.btnAddFolderIconButton.visibility = android.view.View.GONE
-                        binding.btnClearLogIconButton.visibility = android.view.View.VISIBLE
-                        binding.buttonSpacer.visibility = android.view.View.VISIBLE
-                    }
-                }
+        binding.btnAddFolderIconButton.setOnClickListener { 
+            if (!settingsManager.chatId.isNullOrEmpty()) {
+                showAddFolderDialog()
+            } else {
+                val msg = getString(R.string.configure_bot_token_chat_id)
+                LogHelper.writeLog(this, msg)
+                showToast(msg)
             }
-            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
-            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
-        })
-
-        binding.btnAddFolderIconButton.setOnClickListener { showAddFolderDialog() }
+        }
         binding.btnClearLogIconButton.setOnClickListener { logHelper.clearLog() }
 
         binding.btnToggleService.setOnClickListener {
             if (isServiceRunning) {
                 serviceController.stopService()
             } else {
-                if (settingsManager.botToken.isNullOrEmpty() || settingsManager.chatId.isNullOrEmpty()) {
-                    LogHelper.writeLog(this, getString(R.string.configure_bot_token_chat_id))
+                if (settingsManager.chatId.isNullOrEmpty()) {
+                    val msg = getString(R.string.configure_bot_token_chat_id)
+                    LogHelper.writeLog(this, msg)
+                    showToast(msg)
                     return@setOnClickListener
                 }
                 if (folders.none { it.isSyncing }) {
@@ -289,14 +259,10 @@ class MainActivity : AppCompatActivity(),
         try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
             val versionName = packageInfo.versionName
-
-            val headerView = binding.navigationView.getHeaderView(0)
-            val tvHeaderVersion = headerView.findViewById<android.widget.TextView>(R.id.tvAppVersion)
-            tvHeaderVersion?.text = "UploadGram v$versionName"
-
-            binding.tvAppVersion.text = "UploadGram v$versionName"
+            val versionText = getString(R.string.app_version_format, versionName)
+            binding.tvAppVersion.text = versionText
         } catch (e: Exception) {
-            Log.e("MainActivity", "Couldn't get app version", e)
+            Log.e("MainActivity", getString(R.string.error_get_version), e)
         }
     }
 
@@ -352,7 +318,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun showUpdateAvailable(latestVersion: String) {
         binding.tvAppVersion.apply {
-            text = "Доступно обновление. UploadGram $latestVersion"
+            text = getString(R.string.update_available, latestVersion)
             setTextColor(ContextCompat.getColor(context, android.R.color.holo_blue_dark))
             setOnClickListener {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Cullorbit/UploadGram/releases"))
@@ -365,7 +331,9 @@ class MainActivity : AppCompatActivity(),
     private fun setupAdapterListeners() {
         folderAdapter.setOnItemClickListener(object : FolderAdapter.OnItemClickListener {
             override fun onItemClick(position: Int) {
-                showEditFolderDialog(position)
+                if (!settingsManager.chatId.isNullOrEmpty()) {
+                    showEditFolderDialog(position)
+                }
             }
         })
 
@@ -397,6 +365,55 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         })
+
+        folderAdapter.setOnShowAllPreviewsListener(object : FolderAdapter.OnShowAllPreviewsListener {
+            override fun onShowAllPreviews(folder: Folder, shownIdentifiers: List<String>) {
+                showAllPreviewsDialog(folder, shownIdentifiers)
+            }
+        })
+    }
+
+    private fun showAllPreviewsDialog(folder: Folder, shownIdentifiers: List<String>) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_all_previews, null)
+        val rvPreviews = dialogView.findViewById<RecyclerView>(R.id.rvAllPreviews)
+        
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(folder.name)
+            .setView(dialogView)
+            .setPositiveButton(getString(R.string.save), null)
+            .setNeutralButton(R.string.deselect_all, null) 
+            .create()
+
+        val adapter = FullPreviewAdapter(this, folder, shownIdentifiers) { fullPreviewAdapter ->
+            folderAdapter.notifyDataSetChanged()
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)?.let { btn ->
+                updateSelectAllButtonText(btn, fullPreviewAdapter.isAllExcluded())
+            }
+        }
+        
+        rvPreviews.layoutManager = androidx.recyclerview.widget.GridLayoutManager(this, 2)
+        rvPreviews.adapter = adapter
+        
+        dialog.setOnShowListener {
+            val neutralButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+            updateSelectAllButtonText(neutralButton, adapter.isAllExcluded())
+            
+            neutralButton.setOnClickListener {
+                val shouldExcludeAll = !adapter.isAllExcluded()
+                adapter.toggleAll(shouldExcludeAll)
+                updateSelectAllButtonText(neutralButton, shouldExcludeAll)
+            }
+        }
+        
+        dialog.setOnDismissListener {
+            adapter.onDetach()
+        }
+        
+        dialog.show()
+    }
+
+    private fun updateSelectAllButtonText(button: android.widget.Button?, allExcluded: Boolean) {
+        button?.text = if (allExcluded) getString(R.string.select_all) else getString(R.string.deselect_all)
     }
 
     private fun showDeleteFolderConfirmationDialog(position: Int, folder: Folder) {
@@ -445,48 +462,27 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun showAddFolderDialog() {
-        val dialog = AddFolderDialog(settingsManager)
-        dialog.show(supportFragmentManager, "AddFolderDialog")
-    }
-
     private fun showEditFolderDialog(position: Int) {
         val folder = folders[position]
         val dialog = EditFolderDialog(settingsManager, folder)
         dialog.show(supportFragmentManager, "EditFolderDialog")
     }
 
-    fun showSyncIntervalDialog() {
-        val dialog = SyncIntervalDialog(settingsManager)
-        dialog.show(supportFragmentManager, "SyncIntervalDialog")
-    }
-
-    fun showCacheLimitDialog() {
-        val limits = arrayOf(
-            getString(R.string.cache_unlimited),
-            getString(R.string.cache_size_gb, 2),
-            getString(R.string.cache_size_gb, 5),
-            getString(R.string.cache_size_gb, 16)
-        )
-        val limitValues = arrayOf(0L, 2L, 5L, 16L).map { it * 1024 * 1024 * 1024 }
-        
-        val currentLimit = settingsManager.cacheLimit
-        var tempLimit = currentLimit
-        val checkedItem = limitValues.indexOf(currentLimit).coerceAtLeast(0)
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(getString(R.string.cache_limit))
-            .setSingleChoiceItems(limits, checkedItem) { _, which ->
-                tempLimit = limitValues[which]
+    private fun handleTopicError(folderName: String) {
+        serviceController.stopService()
+        var found = false
+        folders.forEachIndexed { index, folder ->
+            if (folder.name == folderName) {
+                folder.hasTopicError = true
+                folder.isSyncing = false
+                folderAdapter.notifyItemChanged(index)
+                found = true
             }
-            .setPositiveButton(getString(R.string.save)) { _, _ ->
-                if (settingsManager.cacheLimit != tempLimit) {
-                    settingsManager.cacheLimit = tempLimit
-                    uiUpdater.updateSettingsDisplay()
-                }
-            }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+        }
+        if (found) {
+            saveFolders()
+            showToast(getString(R.string.error_topic_not_found_message, folderName))
+        }
     }
 
     fun showToast(message: String) {
@@ -541,8 +537,10 @@ class MainActivity : AppCompatActivity(),
         LocalBroadcastManager.getInstance(this).registerReceiver(
             previewsUpdateReceiver, IntentFilter(FolderAdapter.ACTION_PREVIEWS_UPDATED)
         )
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            topicErrorReceiver, IntentFilter("com.example.photouploaderapp.TOPIC_ERROR")
+        )
         logHelper.loadSavedLog()
-        uiUpdater.updateSettingsDisplay()
         refreshPreviews()
     }
 
@@ -551,6 +549,7 @@ class MainActivity : AppCompatActivity(),
         LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(serviceStateReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(previewsUpdateReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(topicErrorReceiver)
     }
 
     override fun onDestroy() {
