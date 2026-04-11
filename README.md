@@ -47,7 +47,7 @@ UploadGram is an Android application designed for automatically uploading photos
 ------------------------
 
 1. Clone the repository:  
-   `git clone https://github.com/ваш-репозиторий/PhotoUploaderApp.git`
+   `git clone https://github.com/your-repo/PhotoUploaderApp.git`
 2. Open the project in Android Studio.
 3. Build the project via `Build` -> `Make Project`.
 4. Run the app on an emulator or a real device.
