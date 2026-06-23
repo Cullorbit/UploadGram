@@ -1,60 +1,58 @@
-# 📖 Руководство по использованию
+# 📖 Usage guide
 
-## 1. Настройте Telegram-бота
+<p align="center">
+  English | <a href="USAGE_ru.md">Русский</a>
+</p>
 
-1. **Создайте нового бота** в Telegram с помощью [@BotFather](https://t.me/BotFather) и получите его токен.
-2. **Добавьте в чат, куда хотите отправлять фото и видео с телефона,** созданного бота **и** бота [@LeadConverterToolkitBot](https://t.me/LeadConverterToolkitBot) (бота можно выбрать любого, способного получать данные группы).
-3. **Назначьте созданного Вами бота администратором** в чате.
-4. **Получите ID чата**, куда хотите отправлять файлы, для этого:
-    - Введите в чате или теме чата:  
-      ```
-      /get_chat_id@LeadConverterToolkitBot
-      ```
-    - Получите **ID чата** и (при необходимости) номер темы (*ID топика*).
+## 1. Install the app
 
-*P.S. в случае, если Ваша группа имеет **темы**, то Вам необходимо узнать номер темы для отправки. Для этого зайдите в настройки темы чата и там Вы увидите ссылку по типу **t.me/c/ХХХХХХХХХХ/7**, где 7 (указан для примера) это и есть номер темы чата.*
+- **Build and install** the app on your Android device  
+  (you can also use a ready-made APK from the [releases](./releases)). All releases are built automatically using GitHub Actions.
 
 ---
 
-## 2. Установите приложение
+## 2. Configure the app
 
-- **Соберите и установите** приложение на Ваше Android-устройство  
-  (можно использовать готовый APK из [релизов](./releases)).
-
----
-
-## 3. Настройте приложение
-
-1. Откройте приложение и перейдите в **боковое меню настроек**.
-2. Введите **токен бота** и **ID чата**, полученные на первом шаге.
-3. *(при необходимости)* Выберите необходимый Вам интервал синхронизации для проверки новых файлов в выбранных Вами папках на телефоне.
-4. *(при необходимости)* Выберите Настройки синхронизации. Так Вы сможете выбрать два варианта синхронизации - WiFi+мобильные данные или только WiFi
-5. *(при необходимости)* Выберите тему приложения.
+1. Open the app and go to **settings**.
+2. Select **Add bot to group**. After that Telegram will open and you will be able to choose which chat to add the bot to. When adding, do not forget to give the bot all administrator rights. If the bot is added successfully, you will see a message about the app being authorized in your group via the bot.
+3. *(if necessary)* Choose the desired **sync interval** for checking new files in the folders you selected on your phone.
+4. *(if necessary)* Choose **Sync settings**. This allows you to select two synchronization options: Wi‑Fi + mobile data or Wi‑Fi only.
+5. *(if necessary)* Choose the **app theme**.
 
 ---
 
-## 4. Добавьте папку для синхронизации
+## 3. Add a folder for synchronization
 
-1. На главном экране нажмите кнопку **"+"**.
-2. Введите **название папки**.
-3. **Выберите папку** на Вашем устройстве, из которой хотите загружать файлы.
-4. *(при необходимости)* укажите **номер темы чата**, если нужен конкретный топик.
-5. Выберите тип отправляемых медиа из выбранной вами папки на телефоне - Фото, Видео, Все.
-6. Сохраните настройки папки.
-
----
-
-## 5. Запустите синхронизацию
-
-- На главном экране нажмите кнопку **"Запустить сервис"**.
-- Приложение начнёт сканировать выбранные папки и загружать новые медиа в указанный чат Telegram.
+1. On the main screen tap the **"+ Add folder"** button.
+2. Enter the **folder name**.
+3. **Select a folder** on your device from which you want to upload files.
+4. *(if necessary)* Specify the **topic ID** if you need a specific topic.
+5. Choose the type of media to send from the selected folder on your phone: Photos, Videos, or All.
+6. Save the folder settings.
 
 ---
 
-## 6. Дополнительные пояснения
+## 4. Start synchronization
 
-1. В случае, если Вы передумали отправлять файлы с телефона в выбранную тему в телеграме, то можно выбрать другой номер темы, нажать на кнопку Сбросить кэш отправленных файлов (значок рядом с корзиной), и все файлы заново отправятся в новую тему. Это также работает в случае, если вы случайно удалили синхронизированные файлы из телеграма - просто нажмите Сбросить кэш отправленных файлов и они еще раз отправятся в чат.
-2. Если Вам мешают сообщения в чате, просто нажмите Очистить лог.
+- On the main screen tap the **"Start"** button.
+- The app will start scanning the selected folders and uploading new media to the specified Telegram chat.
 
 ---
 
+## 5. Additional explanations
+
+1. If you change your mind about sending files from your phone to the selected topic in Telegram, you can choose another topic ID, tap **Reset sent files cache** (the icon next to the trash bin), and all files will be resent to the new topic. This also works if you accidentally deleted synchronized files from Telegram – just tap **Reset sent files cache** and they will be sent to the chat again.
+2. If there are files in your folder that you do not want to send to Telegram, simply tap **preview** and that file will not be sent.
+3. If the messages in the chat disturb you, simply tap **Clear log**.
+4. If you select a non‑existent topic ID, the app will stop its work and highlight the misconfigured folder in red.
+
+---
+
+## 6. Optional settings 
+
+6.1. Configure the Telegram bot
+
+1. **Create a new bot** in Telegram using [@BotFather](https://t.me/BotFather) and get its token.
+2. **Enter the token** of your bot in the app settings, and then authorize it according to section 2 of this guide.
+
+*P.S. If your group has **topics**, you need to find out the topic ID for sending. To do this, open the topic settings of the chat and you will see a link like **t.me/c/XXXXXXXXXX/7**, where 7 (shown as an example) is the topic ID.*
