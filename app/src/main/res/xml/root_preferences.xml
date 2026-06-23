@@ -18,7 +18,7 @@
             app:useSimpleSummaryProvider="true" />
 
         <ListPreference
-            app:defaultValue="900000"
+            app:defaultValue="15"
             app:entries="@array/sync_interval_entries"
             app:entryValues="@array/sync_interval_values"
             app:key="sync_interval"

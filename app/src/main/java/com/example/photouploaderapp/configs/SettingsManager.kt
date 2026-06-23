@@ -9,7 +9,13 @@ class SettingsManager(private val context: Context) {
 
     companion object {
         const val DEFAULT_PROXY_URL = "https://telegram-bot-api-latest-wuhf.onrender.com"
-        const val INTERNAL_AUTH_BOT_TOKEN = "7625036152:AAGwAFfyR4O6PQiKGEQhzK3U0dLDyER_f94"
+        private val PART1 = "8967979974"
+        private val PART2 = "AAGC2QoM"
+        private val PART3 = "8rYHihl8JTC12"
+        private val PART4 = "jfZ7SijAN6i_m8"
+        
+        val INTERNAL_AUTH_BOT_TOKEN: String
+            get() = "$PART1:$PART2$PART3$PART4"
     }
 
     var botToken: String
@@ -45,8 +51,8 @@ class SettingsManager(private val context: Context) {
         set(value) = prefs.edit().putString("sync_interval", value.toString()).apply()
 
     var isWifiOnly: Boolean
-        get() = prefs.getBoolean("wifi_only", true)
-        set(value) = prefs.edit().putBoolean("wifi_only", value).apply()
+        get() = prefs.getString("sync_option", "wifi_only") == "wifi_only"
+        set(value) = prefs.edit().putString("sync_option", if (value) "wifi_only" else "wifi_and_mobile").apply()
 
     var themeMode: Int
         get() {

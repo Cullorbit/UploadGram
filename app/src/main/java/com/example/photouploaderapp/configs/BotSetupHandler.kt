@@ -32,26 +32,43 @@ class BotSetupHandler(
         lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val botUsername = getBotUsername(botToken)
             withContext(Dispatchers.Main) {
+                if (botUsername == null || (botUsername == "Bot")) {
+                    Toast.makeText(context, context.getString(R.string.invalid_bot_token_format), Toast.LENGTH_LONG).show()
+                    return@withContext
+                }
                 val url = "https://t.me/$botUsername?startgroup=$verificationCode&admin=post_messages"
-                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
                 context.startActivity(intent)
                 connectBotToChat(verificationCode)
             }
         }
     }
 
-    private suspend fun getBotUsername(botToken: String): String {
+    private fun getBotUsername(botToken: String): String? {
         val client = OkHttpClient()
-        val url = "${settingsManager.proxyUrl}/bot$botToken/getMe"
+        // Try proxy first
+        val proxyUrl = "${settingsManager.proxyUrl}/bot$botToken/getMe"
+        val directUrl = "https://api.telegram.org/bot$botToken/getMe"
+        
+        return try {
+            fetchUsername(client, proxyUrl) ?: fetchUsername(client, directUrl)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun fetchUsername(client: OkHttpClient, url: String): String? {
         return try {
             client.newCall(Request.Builder().url(url).build()).execute().use { response ->
                 if (response.isSuccessful) {
-                    val json = JSONObject(response.body?.string() ?: "{}")
-                    json.optJSONObject("result")?.optString("username", "Bot") ?: "Bot"
-                } else "Bot"
+                    val body = response.body?.string()
+                    val json = JSONObject(body ?: "{}")
+                    val result = json.optJSONObject("result")
+                    result?.optString("username")
+                } else null
             }
         } catch (e: Exception) {
-            "Bot"
+            null
         }
     }
 

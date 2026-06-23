@@ -16,10 +16,10 @@
         <item>@string/two_hours</item>
     </string-array>
     <string-array name="sync_interval_values">
-        <item>900000</item>
-        <item>1800000</item>
-        <item>3600000</item>
-        <item>7200000</item>
+        <item>15</item>
+        <item>30</item>
+        <item>60</item>
+        <item>120</item>
     </string-array>
 
     <string-array name="cache_limit_entries">

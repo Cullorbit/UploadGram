@@ -180,6 +180,7 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
 
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
     }
 
     private fun showAddFolderDialog() {
