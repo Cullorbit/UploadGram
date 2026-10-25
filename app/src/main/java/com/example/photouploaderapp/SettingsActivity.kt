@@ -2,20 +2,29 @@ package com.example.photouploaderapp
 
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.MenuItem
-import android.widget.EditText
-import android.widget.FrameLayout
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceGroup
 import com.example.photouploaderapp.configs.BotSetupHandler
 import com.example.photouploaderapp.configs.SettingsManager
 import com.example.photouploaderapp.databinding.ActivitySettingsBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,9 +37,18 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySettingsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            val navBarInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            binding.settingsAppbar.setPadding(0, statusBarInsets.top, 0, 0)
+            binding.settingsContainer.setPadding(0, 0, 0, navBarInsets.bottom)
+            insets
+        }
 
         setSupportActionBar(binding.settingsToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -88,12 +106,41 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+            super.onViewCreated(view, savedInstanceState)
+            setDivider(null)
+            tintPreferenceIcons(preferenceScreen)
+        }
+
+        private fun tintPreferenceIcons(group: PreferenceGroup) {
+            val typedValue = TypedValue()
+            requireContext().theme.resolveAttribute(
+                com.google.android.material.R.attr.colorOnSurfaceVariant,
+                typedValue,
+                true
+            )
+            val color = typedValue.data
+
+            for (i in 0 until group.preferenceCount) {
+                val pref = group.getPreference(i)
+                pref.icon?.let { icon ->
+                    val wrapped = DrawableCompat.wrap(icon.mutate())
+                    DrawableCompat.setTint(wrapped, color)
+                    pref.icon = wrapped
+                }
+                if (pref is PreferenceGroup) {
+                    tintPreferenceIcons(pref)
+                }
+            }
+        }
+
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         }
 
         override fun onResume() {
             super.onResume()
             preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(this)
+            tintPreferenceIcons(preferenceScreen)
         }
 
         override fun onPause() {
@@ -236,36 +283,48 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-        private fun showBotTokenDialog(onChanged: () -> Unit) {
-            val currentRaw = settingsManager.getRawBotToken() ?: ""
-            val editText = EditText(requireContext()).apply {
-                setText(currentRaw)
-                setSelection(text.length)
-                hint = getString(R.string.enter_bot_token)
+        private fun showInputDialog(
+            titleRes: Int,
+            descriptionRes: Int,
+            hintRes: Int,
+            currentValue: String?,
+            onSave: (String) -> Unit,
+            onDefault: () -> Unit
+        ) {
+            val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_generic_input, null)
+            val tvDesc = dialogView.findViewById<TextView>(R.id.tvDescription)
+            val til = dialogView.findViewById<TextInputLayout>(R.id.textInputLayout)
+            val editText = dialogView.findViewById<TextInputEditText>(R.id.editTextField)
+
+            tvDesc.text = getString(descriptionRes)
+            tvDesc.visibility = View.VISIBLE
+            til.hint = getString(hintRes)
+            editText.setText(currentValue ?: "")
+            if (!currentValue.isNullOrEmpty()) {
+                editText.setSelection(currentValue.length)
             }
 
-            val container = FrameLayout(requireContext())
-            val params = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            )
-            val margin = (20 * resources.displayMetrics.density).toInt()
-            params.setMargins(margin, margin / 2, margin, 0)
-            editText.layoutParams = params
-            container.addView(editText)
-
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.use_own_bot_token)
-                .setMessage(R.string.bot_token_description)
-                .setView(container)
+                .setTitle(titleRes)
+                .setView(dialogView)
                 .setNeutralButton(R.string.default_button) { _, _ ->
-                    settingsManager.botToken = ""
-                    onChanged()
-                    Toast.makeText(requireContext(), R.string.bot_token_default_toast, Toast.LENGTH_SHORT).show()
+                    onDefault()
                 }
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.save) { _, _ ->
-                    val newToken = editText.text.toString().trim()
+                    val value = editText.text?.toString()?.trim() ?: ""
+                    onSave(value)
+                }
+                .show()
+        }
+
+        private fun showBotTokenDialog(onChanged: () -> Unit) {
+            showInputDialog(
+                titleRes = R.string.use_own_bot_token,
+                descriptionRes = R.string.bot_token_description,
+                hintRes = R.string.enter_bot_token,
+                currentValue = settingsManager.getRawBotToken(),
+                onSave = { newToken ->
                     if (newToken.isEmpty()) {
                         settingsManager.botToken = ""
                         onChanged()
@@ -275,40 +334,22 @@ class SettingsActivity : AppCompatActivity() {
                     } else {
                         Toast.makeText(requireContext(), R.string.invalid_bot_token_format, Toast.LENGTH_SHORT).show()
                     }
+                },
+                onDefault = {
+                    settingsManager.botToken = ""
+                    onChanged()
+                    Toast.makeText(requireContext(), R.string.bot_token_default_toast, Toast.LENGTH_SHORT).show()
                 }
-                .show()
+            )
         }
 
         private fun showProxyDialog(onChanged: () -> Unit) {
-            val currentRaw = settingsManager.getRawProxyUrl() ?: ""
-            val editText = EditText(requireContext()).apply {
-                setText(currentRaw)
-                setSelection(text.length)
-                hint = getString(R.string.enter_proxy_url)
-            }
-
-            val container = FrameLayout(requireContext())
-            val params = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            )
-            val margin = (20 * resources.displayMetrics.density).toInt()
-            params.setMargins(margin, margin / 2, margin, 0)
-            editText.layoutParams = params
-            container.addView(editText)
-
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.set_proxy_url)
-                .setMessage(R.string.proxy_url_description)
-                .setView(container)
-                .setNeutralButton(R.string.default_button) { _, _ ->
-                    settingsManager.proxyUrl = ""
-                    onChanged()
-                    Toast.makeText(requireContext(), R.string.proxy_url_default_toast, Toast.LENGTH_SHORT).show()
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.save) { _, _ ->
-                    val newUrl = editText.text.toString().trim()
+            showInputDialog(
+                titleRes = R.string.set_proxy_url,
+                descriptionRes = R.string.proxy_url_description,
+                hintRes = R.string.enter_proxy_url,
+                currentValue = settingsManager.getRawProxyUrl(),
+                onSave = { newUrl ->
                     if (newUrl.isEmpty()) {
                         settingsManager.proxyUrl = ""
                         onChanged()
@@ -318,8 +359,13 @@ class SettingsActivity : AppCompatActivity() {
                     } else {
                         Toast.makeText(requireContext(), R.string.invalid_url_format, Toast.LENGTH_SHORT).show()
                     }
+                },
+                onDefault = {
+                    settingsManager.proxyUrl = ""
+                    onChanged()
+                    Toast.makeText(requireContext(), R.string.proxy_url_default_toast, Toast.LENGTH_SHORT).show()
                 }
-                .show()
+            )
         }
 
         private fun updateBotConnectionSummary() {

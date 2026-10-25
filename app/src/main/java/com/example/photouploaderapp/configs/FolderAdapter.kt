@@ -1,6 +1,7 @@
 package com.example.photouploaderapp.configs
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -9,12 +10,13 @@ import android.transition.AutoTransition
 import android.transition.TransitionManager
 import android.util.Log
 import android.util.Size
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.view.children
+import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.photouploaderapp.R
 import com.example.photouploaderapp.databinding.FolderItemBinding
@@ -56,7 +58,6 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
     fun setOnResetCacheClickListener(listener: OnResetCacheClickListener) { this.resetCacheClickListener = listener }
     fun setOnSyncToggleListener(listener: OnSyncToggleListener) { this.syncToggleListener = listener }
     fun setOnShowAllPreviewsListener(listener: OnShowAllPreviewsListener) { this.showAllPreviewsListener = listener }
-
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FolderViewHolder {
         val binding = FolderItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -111,18 +112,28 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
             
             binding.tvFolderName.text = folder.name
             
+            val typedValueOnSurface = TypedValue()
+            context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValueOnSurface, true)
+
             if (folder.hasTopicError) {
-                binding.tvFolderName.setTextColor(context.getColor(android.R.color.holo_red_dark))
+                val typedValueError = TypedValue()
+                context.theme.resolveAttribute(com.google.android.material.R.attr.colorError, typedValueError, true)
+                binding.tvFolderName.setTextColor(typedValueError.data)
             } else {
-                val typedValue = android.util.TypedValue()
-                context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
-                binding.tvFolderName.setTextColor(typedValue.data)
+                binding.tvFolderName.setTextColor(typedValueOnSurface.data)
             }
 
             binding.tvFolderDetails.text = context.getString(R.string.folder_details, folder.topic.ifEmpty { "-" }, folder.mediaType)
             binding.ivFolderIcon.setImageResource(R.drawable.ic_folder)
-            binding.cbSyncToggle.setOnCheckedChangeListener(null)
 
+            val typedValueOnPrimaryContainer = TypedValue()
+            context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnPrimaryContainer, typedValueOnPrimaryContainer, true)
+            ImageViewCompat.setImageTintList(
+                binding.ivFolderIcon,
+                ColorStateList.valueOf(typedValueOnPrimaryContainer.data)
+            )
+
+            binding.cbSyncToggle.setOnCheckedChangeListener(null)
             binding.cbSyncToggle.isChecked = folder.isSyncing
             itemView.alpha = if (folder.isSyncing) 1.0f else 0.5f
 
@@ -208,22 +219,32 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
         }
 
         private fun setupPreviewView(previewBinding: PreviewItemBinding, data: PreviewData) {
+            val context = previewBinding.root.context
             if (data.isCountOnly) {
                 previewBinding.tvMoreCount.visibility = View.VISIBLE
                 previewBinding.tvMoreCount.text = if (data.identifier == "audio_count") "${data.count}" else "+${data.count}"
                 previewBinding.ivPreview.setImageBitmap(null)
-                previewBinding.ivPreview.setBackgroundColor(0xFF444444.toInt())
+                ImageViewCompat.setImageTintList(previewBinding.ivPreview, null)
+                val typedValue = TypedValue()
+                context.theme.resolveAttribute(com.google.android.material.R.attr.colorSurfaceContainerHigh, typedValue, true)
+                previewBinding.ivPreview.setBackgroundColor(typedValue.data)
             } else {
                 previewBinding.tvMoreCount.visibility = View.GONE
                 if (data.bitmap != null) {
                     previewBinding.ivPreview.setImageBitmap(data.bitmap)
                     previewBinding.ivPreview.scaleType = ImageView.ScaleType.CENTER_CROP
                     previewBinding.ivPreview.clearColorFilter()
+                    ImageViewCompat.setImageTintList(previewBinding.ivPreview, null)
                 } else {
                     previewBinding.ivPreview.setImageResource(R.drawable.ic_folder)
                     previewBinding.ivPreview.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    previewBinding.ivPreview.setColorFilter(0xFFCCCCCC.toInt())
-                    previewBinding.ivPreview.alpha = 0.8f
+                    val typedValue = TypedValue()
+                    context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, typedValue, true)
+                    ImageViewCompat.setImageTintList(
+                        previewBinding.ivPreview,
+                        ColorStateList.valueOf(typedValue.data)
+                    )
+                    previewBinding.ivPreview.alpha = 0.7f
                 }
 
                 if (data.isExcluded) {
@@ -238,11 +259,18 @@ class FolderAdapter(private val folders: MutableList<Folder>) : RecyclerView.Ada
 
         private fun addEmptyPreview(container: ViewGroup, inflater: LayoutInflater) {
             val previewBinding = PreviewItemBinding.inflate(inflater, container, false)
+            val context = container.context
             previewBinding.ivPreview.setImageResource(R.drawable.ic_folder)
             previewBinding.ivPreview.scaleType = ImageView.ScaleType.CENTER_INSIDE
             previewBinding.ivPreview.setPadding(12, 12, 12, 12)
-            previewBinding.ivPreview.setColorFilter(0xFFCCCCCC.toInt())
-            previewBinding.ivPreview.alpha = 0.4f
+            
+            val typedValue = TypedValue()
+            context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, typedValue, true)
+            ImageViewCompat.setImageTintList(
+                previewBinding.ivPreview,
+                ColorStateList.valueOf(typedValue.data)
+            )
+            previewBinding.ivPreview.alpha = 0.5f
             previewBinding.root.tag = "empty_placeholder"
             container.addView(previewBinding.root)
         }

@@ -202,4 +202,14 @@
     <string name="instruction">Инструкция</string>
     <string name="select_all">Выделить все</string>
     <string name="deselect_all">Снять все</string>
+
+    <string name="compact_mode">Компактный режим</string>
+    <string name="compact_mode_summary">Отображать папки компактными карточками</string>
+    <string name="sync_folder">Синхронизировать</string>
+    <string name="tab_gallery">Галерея</string>
+    <string name="sync_this_file">Синхронизировать этот файл</string>
+    <string name="exclude_selected">Исключить из синхронизации</string>
+    <string name="include_selected">Синхронизировать выбранные</string>
+    <string name="selected_count">Выбрано: %1$d</string>
+    <string name="no_media_found">Медиафайлы не найдены</string>
 </resources>

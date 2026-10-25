@@ -82,6 +82,10 @@ class SettingsManager(private val context: Context) {
         get() = prefs.getBoolean("is_service_running", false)
         set(value) = prefs.edit().putBoolean("is_service_running", value).apply()
 
+    var isCompactMode: Boolean
+        get() = prefs.getBoolean("is_compact_mode", true)
+        set(value) = prefs.edit().putBoolean("is_compact_mode", value).apply()
+
     fun clearSettings() {
         prefs.edit().clear().apply()
         context.getSharedPreferences("Folders", Context.MODE_PRIVATE).edit().clear().apply()

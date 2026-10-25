@@ -27,6 +27,9 @@
         <item name="colorOnSurfaceInverse">@color/m3_dark_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/m3_dark_inversePrimary</item>
 
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Material3.MaterialAlertDialog</item>
+
         <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
         <item name="materialButtonStyle">@style/Widget.Material3.Button</item>
         <item name="floatingActionButtonStyle">@style/Widget.Material3.FloatingActionButton.Primary</item>
@@ -52,5 +55,13 @@
         <item name="itemBackground">@color/nav_item_bg_color</item>
         <item name="headerLayout">@layout/drawer_header</item>
         <item name="android:background">?attr/colorSurface</item>
+    </style>
+
+    <style name="ShapeAppearance.App.BottomContainer" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">28dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
     </style>
 </resources>

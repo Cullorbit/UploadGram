@@ -1,19 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <PreferenceCategory app:title="@string/bot_settings">
+    <PreferenceCategory
+        app:title="@string/bot_settings"
+        app:iconSpaceReserved="false">
         <Preference
             app:key="menu_add_bot"
+            app:icon="@drawable/ic_bot_vector"
             app:title="@string/add_bot_to_chat"
             app:summary="@string/bot_not_connected" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="@string/sync_settings">
+    <PreferenceCategory
+        app:title="@string/sync_settings"
+        app:iconSpaceReserved="false">
         <ListPreference
             app:defaultValue="wifi_only"
             app:entries="@array/sync_options_entries"
             app:entryValues="@array/sync_options_values"
             app:key="sync_option"
+            app:icon="@drawable/ic_sync_vector"
             app:title="@string/synchronization"
             app:useSimpleSummaryProvider="true" />
 
@@ -22,6 +28,7 @@
             app:entries="@array/sync_interval_entries"
             app:entryValues="@array/sync_interval_values"
             app:key="sync_interval"
+            app:icon="@drawable/ic_timer_vector"
             app:title="@string/sync_interval"
             app:useSimpleSummaryProvider="true" />
 
@@ -30,17 +37,29 @@
             app:entries="@array/cache_limit_entries"
             app:entryValues="@array/cache_limit_values"
             app:key="cache_limit"
+            app:icon="@drawable/ic_folder_vector"
             app:title="@string/cache_limit"
             app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreferenceCompat
+            app:key="is_compact_mode"
+            app:defaultValue="true"
+            app:icon="@drawable/ic_compact_vector"
+            app:title="@string/compact_mode"
+            app:summary="@string/compact_mode_summary" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="@string/advanced_settings">
+    <PreferenceCategory
+        app:title="@string/advanced_settings"
+        app:iconSpaceReserved="false">
         <Preference
             app:key="proxy_url"
+            app:icon="@drawable/ic_proxy_vector"
             app:title="@string/set_proxy_url" />
 
         <Preference
             app:key="bot_token"
+            app:icon="@drawable/ic_key_vector"
             app:title="@string/use_own_bot_token" />
 
         <ListPreference
@@ -48,21 +67,27 @@
             app:entries="@array/theme_entries"
             app:entryValues="@array/theme_values"
             app:key="theme_mode"
+            app:icon="@drawable/ic_theme_vector"
             app:title="@string/app_theme"
             app:useSimpleSummaryProvider="true" />
 
         <Preference
             app:key="menu_reset_settings"
+            app:icon="@drawable/ic_reset_vector"
             app:title="@string/reset_app_settings" />
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="@string/about_app">
+    <PreferenceCategory
+        app:title="@string/about_app"
+        app:iconSpaceReserved="false">
         <Preference
             app:key="menu_app_info"
+            app:icon="@drawable/ic_info_vector"
             app:title="@string/app_name"
             app:summary="@string/check_for_updates" />
         <Preference
             app:key="menu_manual"
+            app:icon="@drawable/ic_help_vector"
             app:title="@string/instruction" />
     </PreferenceCategory>
 

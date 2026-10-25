@@ -8,17 +8,21 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.LayoutInflater
-import android.widget.TextView
 import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -41,11 +45,72 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
     lateinit var binding: ActivityMainBinding
     private val folders = mutableListOf<Folder>()
     private val folderAdapter by lazy { FolderAdapter(folders) }
+    
+    private val folderStatesPrefs: SharedPreferences by lazy {
+        getSharedPreferences("FolderStates", Context.MODE_PRIVATE)
+    }
+
+    private val collapsedFolderIds: MutableSet<String> by lazy {
+        folderStatesPrefs.getStringSet("collapsed_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
+    }
+
+    private fun saveCollapsedStates() {
+        folderStatesPrefs.edit().putStringSet("collapsed_ids", collapsedFolderIds).apply()
+    }
+
+    private val galleryFolderAdapter: GalleryFolderAdapter by lazy {
+        GalleryFolderAdapter(
+            context = this,
+            folders = folders,
+            collapsedFolderIds = collapsedFolderIds,
+            onEditFolder = { position ->
+                showEditFolderDialog(position)
+            },
+            onDeleteFolder = { position ->
+                val folder = folders.getOrNull(position)
+                if (folder != null) {
+                    showDeleteFolderConfirmationDialog(position, folder)
+                }
+            },
+            onResetCache = { position ->
+                val folder = folders.getOrNull(position)
+                if (folder != null) {
+                    showResetCacheConfirmationDialog(folder)
+                }
+            },
+            onFolderSyncToggle = { position, isChecked ->
+                val folder = folders.getOrNull(position)
+                if (folder != null) {
+                    folder.isSyncing = isChecked
+                    if (isChecked) {
+                        folder.hasTopicError = false
+                    }
+                    saveFolders()
+                    stopServiceIfNeeded(getString(R.string.folder_changes_detected))
+                    refreshPreviews()
+                }
+            },
+            onFolderExpandCollapse = { _, _ ->
+                saveCollapsedStates()
+            },
+            onMediaClick = { mediaItem ->
+                val allItems = galleryFolderAdapter.folderSections.flatMap { section -> section.mediaItems }
+                showFullMediaDialog(allItems, mediaItem)
+            },
+            onSyncStateChanged = {
+                refreshPreviews()
+            }
+        )
+    }
+
     private lateinit var logHelper: LogHelper
     private lateinit var settingsManager: SettingsManager
     private lateinit var serviceController: ServiceController
     private lateinit var uiUpdater: UIUpdater
     private lateinit var folderPickerLauncher: ActivityResultLauncher<Uri?>
+    
+    private var lastModeWasCompact: Boolean? = null
+    private var currentGalleryView: View? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -91,12 +156,26 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         settingsManager = SettingsManager(this)
         androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(settingsManager.themeMode)
         
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.coordinatorLayout) { _, insets ->
+            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            val navBarInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            binding.appBarLayout.setPadding(0, statusBarInsets.top, 0, 0)
+            binding.bottomContainer.setPadding(
+                binding.bottomContainer.paddingLeft,
+                binding.bottomContainer.paddingTop,
+                binding.bottomContainer.paddingRight,
+                navBarInsets.bottom + 8
+            )
+            insets
+        }
         
         initControllers()
         setupListeners()
@@ -108,18 +187,35 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
     }
 
     private fun setupViewPager() {
+        val isCompact = settingsManager.isCompactMode
+        lastModeWasCompact = isCompact
+
         val adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                val layoutId = if (viewType == 0) R.layout.page_folders else R.layout.page_log
-                val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
+                val layoutId = when {
+                    viewType == 1 -> R.layout.page_log
+                    isCompact -> R.layout.page_folders
+                    else -> R.layout.page_gallery
+                }
+                val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                }
                 return object : RecyclerView.ViewHolder(view) {}
             }
 
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
                 if (position == 0) {
-                    val rv = holder.itemView.findViewById<RecyclerView>(R.id.recyclerViewFolders)
-                    rv.layoutManager = LinearLayoutManager(this@MainActivity)
-                    rv.adapter = folderAdapter
+                    if (isCompact) {
+                        val rv = holder.itemView.findViewById<RecyclerView>(R.id.recyclerViewFolders)
+                        rv.layoutManager = LinearLayoutManager(this@MainActivity)
+                        rv.adapter = folderAdapter
+                    } else {
+                        currentGalleryView = holder.itemView
+                        setupGalleryView(holder.itemView)
+                    }
                 } else {
                     val tvLog = holder.itemView.findViewById<TextView>(R.id.tvLog)
                     val scrollView = holder.itemView.findViewById<ScrollView>(R.id.scrollViewLog)
@@ -134,7 +230,11 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
         binding.viewPager.adapter = adapter
         
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            tab.text = if (position == 0) getString(R.string.tab_folders) else getString(R.string.tab_log)
+            tab.text = if (position == 0) {
+                if (isCompact) getString(R.string.tab_folders) else getString(R.string.tab_gallery)
+            } else {
+                getString(R.string.tab_log)
+            }
         }.attach()
 
         binding.viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
@@ -150,6 +250,103 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
                 }
             }
         })
+
+        if (!isCompact) {
+            loadGallerySections()
+        }
+    }
+
+    private fun setupGalleryView(view: View) {
+        val rvGalleryFolders = view.findViewById<RecyclerView>(R.id.rvGalleryFolders)
+        rvGalleryFolders.layoutManager = LinearLayoutManager(this)
+        rvGalleryFolders.adapter = galleryFolderAdapter
+        loadGallerySections()
+    }
+
+    private fun showFullMediaDialog(allItems: List<GalleryMediaItem>, mediaItem: GalleryMediaItem) {
+        val dialog = FullMediaDialog(allItems, mediaItem) {
+            loadGallerySections()
+            refreshPreviews()
+        }
+        dialog.show(supportFragmentManager, "FullMediaDialog")
+    }
+
+    private fun loadGallerySections() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val sections = mutableListOf<FolderSection>()
+            val excludedFilesPrefs = getSharedPreferences("ExcludedFiles", Context.MODE_PRIVATE)
+
+            folders.forEach { folder ->
+                val mediaItems = mutableListOf<GalleryMediaItem>()
+                try {
+                    val treeUri = Uri.parse(folder.path)
+                    val documentId = DocumentsContract.getTreeDocumentId(treeUri)
+                    val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, documentId)
+                    val projection = arrayOf(
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                        DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                        DocumentsContract.Document.COLUMN_SIZE,
+                        DocumentsContract.Document.COLUMN_MIME_TYPE
+                    )
+
+                    contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                        val idIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                        val nameIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                        val modIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                        val sizeIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_SIZE)
+                        val mimeIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
+
+                        while (cursor.moveToNext()) {
+                            val name = cursor.getString(nameIdx) ?: continue
+                            if (name.startsWith(".")) continue
+                            val mime = cursor.getString(mimeIdx) ?: ""
+                            if (mime == DocumentsContract.Document.MIME_TYPE_DIR) continue
+
+                            val size = cursor.getLong(sizeIdx)
+                            val lastModified = cursor.getLong(modIdx)
+                            val docId = cursor.getString(idIdx)
+                            val fileIdentifier = "folder_${folder.id}_${name}_$size"
+
+                            if (MediaUtils.isValidMedia(this@MainActivity, name, folder.mediaType)) {
+                                val isVideo = mime.startsWith("video/")
+                                val isAudio = mime.startsWith("audio/") || folder.mediaType == getString(R.string.only_audio)
+                                
+                                mediaItems.add(
+                                    GalleryMediaItem(
+                                        uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId),
+                                        name = name,
+                                        folderId = folder.id,
+                                        folderName = folder.name,
+                                        fileIdentifier = fileIdentifier,
+                                        isVideo = isVideo,
+                                        isAudio = isAudio,
+                                        lastModified = lastModified,
+                                        size = size,
+                                        isExcluded = excludedFilesPrefs.contains(fileIdentifier)
+                                    )
+                                )
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error scanning folder for gallery: ${folder.name}", e)
+                }
+
+                val sortedMedia = mediaItems.sortedByDescending { it.lastModified }.toMutableList()
+                val isExpanded = !collapsedFolderIds.contains(folder.id)
+                sections.add(FolderSection(folder, sortedMedia, isExpanded = isExpanded))
+            }
+
+            withContext(Dispatchers.Main) {
+                galleryFolderAdapter.setFolderSections(sections)
+                val totalItems = sections.sumOf { it.mediaItems.size }
+                currentGalleryView?.let { view ->
+                    val tvEmptyState = view.findViewById<TextView>(R.id.tvEmptyState)
+                    tvEmptyState?.visibility = if (totalItems == 0) View.VISIBLE else View.GONE
+                }
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
@@ -194,6 +391,9 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
         saveFolders()
         LogHelper.writeLog(this, getString(R.string.new_folder_added, folder.name))
         stopServiceIfNeeded()
+        if (!settingsManager.isCompactMode) {
+            loadGallerySections()
+        }
     }
 
     override fun onFolderEdited(editedFolder: Folder) {
@@ -208,6 +408,9 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
             }
         }
         refreshPreviews()
+        if (!settingsManager.isCompactMode) {
+            loadGallerySections()
+        }
     }
 
     private fun initControllers() {
@@ -247,6 +450,9 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
                 serviceController.startService(folders)
             }
             refreshPreviews()
+            if (!settingsManager.isCompactMode) {
+                loadGallerySections()
+            }
         }
 
         setupAdapterListeners()
@@ -363,6 +569,9 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
                     saveFolders()
                     stopServiceIfNeeded(getString(R.string.folder_changes_detected))
                     refreshPreviews()
+                    if (!settingsManager.isCompactMode) {
+                        loadGallerySections()
+                    }
                 }
             }
         })
@@ -430,6 +639,9 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
                 LogHelper.writeLog(this@MainActivity, getString(R.string.folder_deleted, removedFolderName))
                 stopServiceIfNeeded()
                 refreshPreviews()
+                if (!settingsManager.isCompactMode) {
+                    loadGallerySections()
+                }
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
@@ -444,6 +656,9 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
                 LogHelper.writeLog(this@MainActivity, getString(R.string.cache_cleared_for_folder, folder.name))
                 stopServiceIfNeeded(getString(R.string.service_stopped_due_to_cache_reset))
                 refreshPreviews()
+                if (!settingsManager.isCompactMode) {
+                    loadGallerySections()
+                }
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
@@ -510,7 +725,7 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
         }
     }
 
-    fun stopServiceIfNeeded(logMessage: String? = null) {
+        private fun stopServiceIfNeeded(logMessage: String? = null) {
         if (isServiceRunning) {
             logMessage?.let { LogHelper.writeLog(this, it) }
             serviceController.stopService()
@@ -542,6 +757,14 @@ class MainActivity : AppCompatActivity(), AddFolderDialog.AddFolderListener, Edi
             topicErrorReceiver, IntentFilter("com.example.photouploaderapp.TOPIC_ERROR")
         )
         logHelper.loadSavedLog()
+        updateServiceState(settingsManager.isServiceRunning)
+        
+        if (lastModeWasCompact != settingsManager.isCompactMode) {
+            setupViewPager()
+        } else if (!settingsManager.isCompactMode) {
+            loadGallerySections()
+        }
+        
         refreshPreviews()
     }
 

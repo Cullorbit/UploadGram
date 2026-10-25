@@ -192,4 +192,14 @@
     <string name="hours_short">%1$d h.</string>
     <string name="error_topic_not_found_message">Incorrect topic settings for folder %1$s. Replace the topic number with the correct one and retry sync.</string>
     <string name="about_app">About App</string>
+
+    <string name="compact_mode">Compact Mode</string>
+    <string name="compact_mode_summary">Display folders as compact cards</string>
+    <string name="sync_folder">Sync</string>
+    <string name="tab_gallery">Gallery</string>
+    <string name="sync_this_file">Sync this file</string>
+    <string name="exclude_selected">Exclude selected</string>
+    <string name="include_selected">Include selected</string>
+    <string name="selected_count">Selected: %1$d</string>
+    <string name="no_media_found">No media files found</string>
 </resources>

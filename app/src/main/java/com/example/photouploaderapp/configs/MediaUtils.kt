@@ -19,14 +19,12 @@ object MediaUtils {
         val photoTypeString = context.getString(R.string.only_photo)
         val videoTypeString = context.getString(R.string.only_video)
         val audioTypeString = context.getString(R.string.only_audio)
-        val allTypeString = context.getString(R.string.all_media)
 
         return when (mediaType) {
-            photoTypeString -> isFilePhoto
-            videoTypeString -> isFileVideo
-            audioTypeString -> isFileAudio
-            allTypeString -> isFilePhoto || isFileVideo || isFileAudio
-            else -> false
+            photoTypeString, "Фото", "Photo" -> isFilePhoto
+            videoTypeString, "Видео", "Video" -> isFileVideo
+            audioTypeString, "Аудио", "Audio" -> isFileAudio
+            else -> isFilePhoto || isFileVideo || isFileAudio
         }
     }
 
