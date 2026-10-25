@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-    tags:
-      - 'v*'
 
 jobs:
   build:
@@ -23,15 +21,19 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: Get Version Name
+        id: get_version
+        run: |
+          VERSION=$(grep "versionName =" app/build.gradle.kts | awk -F'"' '{print $2}')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Decode Keystore
-        # Декодируем секрет в файл в корне проекта
         run: echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > release-key.jks
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        # Передаем секреты в переменные окружения для Gradle
         run: ./gradlew clean assembleRelease
         env:
           SIGNING_STORE_FILE: ../release-key.jks
@@ -39,20 +41,13 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apks
-          path: app/build/outputs/apk/release/*.apk
-
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
           files: |
-            app/build/outputs/apk/release/app-arm64-v8a-release.apk
-            app/build/outputs/apk/release/app-armeabi-v7a-release.apk
-            app/build/outputs/apk/release/app-universal-release.apk
+            app/build/outputs/apk/release/*.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
